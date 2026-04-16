@@ -3,7 +3,7 @@
 import * as Dialog from "@radix-ui/react-dialog";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
-import { XIcon } from "./Icons";
+import { X as XIcon } from "lucide-react";
 
 interface ModalProps {
   open: boolean;

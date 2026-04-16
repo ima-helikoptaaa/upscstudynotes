@@ -28,7 +28,7 @@ import {
   ChartUpIcon,
   LinkSquare01Icon,
   FilterIcon as FilterIconData,
-  LayoutGrid01Icon,
+  GridIcon as LayoutGridIconData,
   BookOpen01Icon,
   EyeIcon as EyeIconData,
 } from "@hugeicons/core-free-icons";

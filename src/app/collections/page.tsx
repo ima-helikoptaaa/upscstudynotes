@@ -7,7 +7,7 @@ import { COLLECTIONS } from "@/lib/mock-data";
 
 export default function CollectionsPage() {
   return (
-    <AppLayout showRightPanel={false}>
+    <AppLayout>
       <div className="mb-7">
         <p className="text-xs font-semibold uppercase tracking-widest text-[var(--color-text-muted)] font-satoshi mb-1">
           Browse

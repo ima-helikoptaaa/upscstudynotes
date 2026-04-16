@@ -2,48 +2,46 @@
 
 import { useState } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
+import * as Select from "@radix-ui/react-select";
 import { motion, AnimatePresence } from "framer-motion";
-import { X } from "lucide-react";
+import { X, ChevronDown, ArrowLeft } from "lucide-react";
 import { useStore } from "@/store/useStore";
 import { Button } from "@/components/ui/Button";
+import { LoginAscii, type LoginStep } from "@/components/ui/LoginAscii";
 import { cn } from "@/lib/utils";
 
-type Step = "phone" | "otp" | "profile";
+type Step = "phone" | "otp" | "details" | "prep";
 
 const MOCK_OTP = "1234";
 
-const STEP_TITLES: Record<Step, string> = {
-  phone: "Login to download",
-  otp: "Enter your OTP",
-  profile: "One last thing",
-};
-
-const STEP_SUBTITLES: Record<Step, string> = {
-  phone: "Sign in to continue — takes under a minute.",
-  otp: "We sent a 4-digit code to your number.",
-  profile: "Optional — helps personalise your experience.",
+const STEP_META: Record<Step, { title: string; subtitle: string; index: number; asciiStep: LoginStep }> = {
+  phone:   { title: "Welcome back",        subtitle: "Enter your number to get started.",               index: 0, asciiStep: "phone"   },
+  otp:     { title: "Verify your number",  subtitle: "We sent a 4-digit code to your number.",          index: 1, asciiStep: "otp"     },
+  details: { title: "Your details",        subtitle: "Help us personalise your experience.",            index: 2, asciiStep: "details" },
+  prep:    { title: "Your preparation",    subtitle: "Tell us about your UPSC journey so far.",         index: 3, asciiStep: "prep"    },
 };
 
 export function LoginModal() {
   const { isAuthModalOpen, closeAuthModal, setUser, authRedirectAction } = useStore();
 
-  const [step, setStep] = useState<Step>("phone");
-  const [phone, setPhone] = useState("");
-  const [otp, setOtp] = useState("");
-  const [otpError, setOtpError] = useState(false);
+  const [step, setStep]               = useState<Step>("phone");
+  const [phone, setPhone]             = useState("");
+  const [otp, setOtp]                 = useState("");
+  const [otpError, setOtpError]       = useState(false);
+  const [name, setName]               = useState("");
+  const [email, setEmail]             = useState("");
   const [attemptYear, setAttemptYear] = useState("");
-  const [coaching, setCoaching] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [coaching, setCoaching]       = useState("");
+  const [loading, setLoading]         = useState(false);
 
   const reset = () => {
     setStep("phone");
     setPhone(""); setOtp(""); setOtpError(false);
-    setAttemptYear(""); setCoaching("");
+    setName(""); setEmail(""); setAttemptYear(""); setCoaching("");
   };
 
   const handleClose = () => { closeAuthModal(); reset(); };
 
-  /* Step 1 → Send OTP */
   const handleSendOTP = async (e: React.FormEvent) => {
     e.preventDefault();
     if (phone.length < 10) return;
@@ -53,7 +51,6 @@ export function LoginModal() {
     setStep("otp");
   };
 
-  /* Step 2 → Verify OTP */
   const handleVerifyOTP = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -61,237 +58,215 @@ export function LoginModal() {
     setLoading(false);
     if (otp !== MOCK_OTP) { setOtpError(true); return; }
     setOtpError(false);
-    setStep("profile");
+    setStep("details");
   };
 
-  /* Step 3 → Complete */
-  const handleComplete = (e?: React.FormEvent) => {
-    e?.preventDefault();
-    setUser({
-      id: Math.random().toString(36).slice(2),
-      name: `+91 ${phone}`,
-      phone,
-      attemptYear: attemptYear ? parseInt(attemptYear) : undefined,
-      coaching: coaching || undefined,
-    });
+  const handleDetails = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name || !email) return;
+    setStep("prep");
+  };
+
+  const handleComplete = (e: React.FormEvent) => {
+    e.preventDefault();
+    setUser({ id: Math.random().toString(36).slice(2), name, email, phone, attemptYear: attemptYear ? parseInt(attemptYear) : undefined, coaching: coaching || undefined });
     handleClose();
     authRedirectAction?.();
   };
 
-  const stepIndex = { phone: 0, otp: 1, profile: 2 }[step];
+  const { title, subtitle, index: stepIndex, asciiStep } = STEP_META[step];
 
   return (
     <Dialog.Root open={isAuthModalOpen} onOpenChange={(v) => !v && handleClose()}>
       <AnimatePresence>
         {isAuthModalOpen && (
           <Dialog.Portal forceMount>
-            {/* Backdrop */}
             <Dialog.Overlay asChild>
               <motion.div
-                className="fixed inset-0 bg-black/40 backdrop-blur-[2px] z-50"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
+                className="fixed inset-0 bg-black/50 backdrop-blur-[3px] z-50"
+                initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                 transition={{ duration: 0.2 }}
               />
             </Dialog.Overlay>
 
-            {/* Modal */}
             <Dialog.Content asChild>
-              <motion.div
-                className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[calc(100vw-2rem)] max-w-[680px] bg-[var(--color-surface)] rounded-2xl overflow-hidden focus:outline-none"
-                initial={{ opacity: 0, y: 12, scale: 0.97 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: 12, scale: 0.97 }}
-                transition={{ duration: 0.2, ease: "easeOut" }}
-              >
-                <div className="flex min-h-[440px]">
-                  {/* ── Left visual panel ───────────────── */}
-                  <div className="hidden md:flex w-[240px] shrink-0 flex-col bg-[#1C1B38] p-8 relative overflow-hidden">
-                    {/* Subtle texture circles */}
-                    <div className="absolute -top-12 -left-12 w-48 h-48 rounded-full bg-[var(--color-primary)]/20" />
-                    <div className="absolute -bottom-16 -right-8 w-56 h-56 rounded-full bg-[var(--color-accent)]/10" />
+              <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                <motion.div
+                  className="w-full max-w-[700px] bg-[var(--color-surface)] rounded-2xl overflow-hidden shadow-2xl shadow-black/25 focus:outline-none"
+                  initial={{ opacity: 0, y: 16, scale: 0.96 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 16, scale: 0.96 }}
+                  transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+                >
+                  <div className="flex min-h-[480px]">
 
-                    <div className="relative z-10 flex flex-col h-full">
-                      <p className="font-sentient text-[1.1rem] text-[var(--color-primary-light)] mb-1 leading-none">
-                        UPSC<span className="text-white">Notes</span>
-                      </p>
-
-                      <p className="font-sentient text-[1.375rem] text-white leading-snug mt-auto mb-6 text-balance">
-                        "Every session brings you closer to selection."
-                      </p>
-
-                      <div className="flex gap-1.5">
-                        {([0, 1, 2] as const).map((i) => (
-                          <div
-                            key={i}
-                            className={cn(
-                              "h-0.5 rounded-full transition-all duration-300",
-                              i === stepIndex
-                                ? "bg-white flex-[2]"
-                                : i < stepIndex
-                                ? "bg-white/40 flex-1"
-                                : "bg-white/15 flex-1"
-                            )}
-                          />
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* ── Right form ──────────────────────── */}
-                  <div className="flex-1 flex flex-col p-8">
-                    {/* Header */}
-                    <div className="flex items-start justify-between mb-6">
-                      <div>
-                        <Dialog.Title className="font-sentient text-h3 text-[var(--color-text-primary)]">
-                          {STEP_TITLES[step]}
-                        </Dialog.Title>
-                        <p className="text-sm text-[var(--color-text-secondary)] font-satoshi tracking-satoshi mt-1">
-                          {STEP_SUBTITLES[step]}
-                        </p>
-                      </div>
-                      <Dialog.Close
-                        onClick={handleClose}
-                        className="shrink-0 text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] p-1.5 rounded-md hover:bg-[var(--color-surface-alt)] transition-colors ml-4"
-                        aria-label="Close"
-                      >
-                        <X size={15} />
-                      </Dialog.Close>
-                    </div>
-
-                    {/* Steps */}
-                    <AnimatePresence mode="wait" initial={false}>
-                      {step === "phone" && (
-                        <StepPanel key="phone">
-                          <form onSubmit={handleSendOTP} className="flex flex-col gap-4 flex-1">
-                            <div className="flex-1">
-                              <FieldLabel>Phone number</FieldLabel>
-                              <div className="flex mt-1.5">
-                                <span className="inline-flex items-center px-3.5 border border-r-0 border-[var(--color-border)] rounded-l-lg bg-[var(--color-surface-alt)] text-sm text-[var(--color-text-secondary)] font-satoshi tracking-satoshi">
-                                  +91
-                                </span>
-                                <input
-                                  type="tel"
-                                  placeholder="9876543210"
-                                  value={phone}
-                                  onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
-                                  className={fieldCls + " rounded-l-none"}
-                                  maxLength={10}
-                                  autoFocus
-                                />
-                              </div>
-                            </div>
-                            <Button
-                              type="submit"
-                              size="lg"
-                              className="w-full justify-center mt-auto"
-                              disabled={phone.length < 10 || loading}
-                            >
-                              {loading ? "Sending OTP…" : "Send OTP →"}
-                            </Button>
-                          </form>
-                        </StepPanel>
-                      )}
-
-                      {step === "otp" && (
-                        <StepPanel key="otp">
-                          <form onSubmit={handleVerifyOTP} className="flex flex-col gap-4 flex-1">
-                            <div className="flex-1">
-                              <FieldLabel>
-                                One-time password
-                                <button
-                                  type="button"
-                                  onClick={() => setStep("phone")}
-                                  className="ml-2 text-[var(--color-primary)] underline underline-offset-2 font-normal"
-                                >
-                                  Change number
-                                </button>
-                              </FieldLabel>
-                              <input
-                                type="text"
-                                inputMode="numeric"
-                                placeholder="Enter 4-digit OTP"
-                                value={otp}
-                                onChange={(e) => {
-                                  setOtpError(false);
-                                  setOtp(e.target.value.replace(/\D/g, "").slice(0, 4));
-                                }}
-                                className={cn(
-                                  fieldCls,
-                                  "text-center text-xl tracking-[0.3em] mt-1.5",
-                                  otpError && "border-red-400 bg-red-50 focus:ring-red-300/30"
-                                )}
-                                maxLength={4}
-                                autoFocus
-                              />
-                              {otpError && (
-                                <p className="mt-1.5 text-xs text-red-500 font-satoshi">
-                                  Incorrect OTP. Use <strong>1234</strong> for this demo.
-                                </p>
+                    {/* ── Left: ASCII only ──────────────────── */}
+                    <div className="hidden md:flex w-[200px] shrink-0 flex-col bg-[#161529] px-5 py-6 relative overflow-hidden">
+                      <div
+                        className="absolute inset-0 opacity-[0.04]"
+                        style={{
+                          backgroundImage: "linear-gradient(#fff 1px,transparent 1px),linear-gradient(90deg,#fff 1px,transparent 1px)",
+                          backgroundSize: "24px 24px",
+                        }}
+                      />
+                      <div className="relative z-10 flex flex-col h-full">
+                        <LoginAscii step={asciiStep} />
+                        {/* Progress dots */}
+                        <div className="flex gap-1.5 mt-auto">
+                          {([0, 1, 2, 3] as const).map((i) => (
+                            <div
+                              key={i}
+                              className={cn(
+                                "h-[3px] rounded-full transition-all duration-400",
+                                i === stepIndex  ? "bg-white flex-[2]"
+                                : i < stepIndex  ? "bg-white/50 flex-1"
+                                : "bg-white/12 flex-1"
                               )}
-                            </div>
-                            <Button
-                              type="submit"
-                              size="lg"
-                              className="w-full justify-center mt-auto"
-                              disabled={otp.length < 4 || loading}
-                            >
-                              {loading ? "Verifying…" : "Verify →"}
-                            </Button>
-                          </form>
-                        </StepPanel>
-                      )}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    </div>
 
-                      {step === "profile" && (
-                        <StepPanel key="profile">
-                          <form onSubmit={handleComplete} className="flex flex-col gap-4 flex-1">
-                            <div className="flex-1 space-y-3.5">
-                              <div>
-                                <FieldLabel>Attempt year</FieldLabel>
-                                <select
-                                  value={attemptYear}
-                                  onChange={(e) => setAttemptYear(e.target.value)}
-                                  className={cn(fieldCls, "mt-1.5 bg-white")}
-                                >
-                                  <option value="">Select year</option>
-                                  {[2025, 2026, 2027, 2028].map((y) => (
-                                    <option key={y} value={y}>{y}</option>
-                                  ))}
-                                </select>
-                              </div>
-                              <div>
-                                <FieldLabel>Coaching (if any)</FieldLabel>
-                                <input
-                                  type="text"
-                                  placeholder="e.g. Vision IAS, self-study"
-                                  value={coaching}
-                                  onChange={(e) => setCoaching(e.target.value)}
-                                  className={cn(fieldCls, "mt-1.5")}
-                                />
-                              </div>
-                            </div>
-                            <div className="flex gap-2.5 mt-auto">
-                              <Button
-                                type="button"
-                                variant="secondary"
-                                size="lg"
-                                className="flex-1 justify-center"
-                                onClick={() => handleComplete()}
-                              >
-                                Skip for now
-                              </Button>
-                              <Button type="submit" size="lg" className="flex-1 justify-center">
-                                Done →
-                              </Button>
-                            </div>
-                          </form>
-                        </StepPanel>
-                      )}
-                    </AnimatePresence>
+                    {/* ── Right: form ───────────────────────── */}
+                    <div className="flex-1 flex flex-col">
+                      {/* Header */}
+                      <div className="flex items-start justify-between px-7 pt-7 pb-5 border-b border-[var(--color-border)]">
+                        <div>
+                          <Dialog.Title className="font-sentient text-[1.3rem] leading-tight text-[var(--color-text-primary)]">
+                            {title}
+                          </Dialog.Title>
+                          <p className="text-[13px] text-[var(--color-text-secondary)] font-satoshi mt-1">{subtitle}</p>
+                        </div>
+                        <Dialog.Close
+                          onClick={handleClose}
+                          className="shrink-0 w-8 h-8 flex items-center justify-center rounded-full text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-alt)] transition-colors ml-4 mt-0.5"
+                          aria-label="Close"
+                        >
+                          <X size={14} />
+                        </Dialog.Close>
+                      </div>
+
+                      {/* Step content */}
+                      <div className="flex-1 flex flex-col px-7 py-6">
+                        <AnimatePresence mode="wait" initial={false}>
+
+                          {/* Phone */}
+                          {step === "phone" && (
+                            <StepPanel key="phone">
+                              <form onSubmit={handleSendOTP} className="flex flex-col gap-5 flex-1">
+                                <div className="flex-1">
+                                  <FieldLabel>Mobile number</FieldLabel>
+                                  <div className="flex mt-1.5">
+                                    <span className="inline-flex items-center px-3.5 border border-r-0 border-[var(--color-border)] rounded-l-lg bg-[var(--color-surface-alt)] text-sm text-[var(--color-text-secondary)] font-satoshi">+91</span>
+                                    <input type="tel" placeholder="9876543210" value={phone}
+                                      onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
+                                      className={fieldCls + " rounded-l-none"} maxLength={10} autoFocus />
+                                  </div>
+                                </div>
+                                <Button type="submit" size="lg" className="w-full justify-center" disabled={phone.length < 10 || loading}>
+                                  {loading ? "Sending…" : "Send OTP →"}
+                                </Button>
+                              </form>
+                            </StepPanel>
+                          )}
+
+                          {/* OTP */}
+                          {step === "otp" && (
+                            <StepPanel key="otp">
+                              <form onSubmit={handleVerifyOTP} className="flex flex-col gap-5 flex-1">
+                                <div className="flex-1 space-y-1">
+                                  <div className="flex items-center justify-between">
+                                    <FieldLabel>One-time password</FieldLabel>
+                                    <button type="button" onClick={() => setStep("phone")}
+                                      className="flex items-center gap-1 text-[11px] text-[var(--color-primary)] font-satoshi hover:underline">
+                                      <ArrowLeft size={10} /> Change number
+                                    </button>
+                                  </div>
+                                  <input type="text" inputMode="numeric" placeholder="1234" value={otp}
+                                    onChange={(e) => { setOtpError(false); setOtp(e.target.value.replace(/\D/g, "").slice(0, 4)); }}
+                                    className={cn(fieldCls, "text-center text-2xl tracking-[0.4em] mt-1.5", otpError && "border-red-400 bg-red-50 focus:ring-red-300/30")}
+                                    maxLength={4} autoFocus />
+                                  {otpError && <p className="text-xs text-red-500 font-satoshi pt-1">Incorrect OTP. Use <strong>1234</strong> for this demo.</p>}
+                                </div>
+                                <Button type="submit" size="lg" className="w-full justify-center" disabled={otp.length < 4 || loading}>
+                                  {loading ? "Verifying…" : "Verify →"}
+                                </Button>
+                              </form>
+                            </StepPanel>
+                          )}
+
+                          {/* Details: name + email */}
+                          {step === "details" && (
+                            <StepPanel key="details">
+                              <form onSubmit={handleDetails} className="flex flex-col gap-5 flex-1">
+                                <div className="flex-1 space-y-4">
+                                  <div>
+                                    <FieldLabel>Full name *</FieldLabel>
+                                    <input required type="text" placeholder="Arjun Sharma" value={name}
+                                      onChange={(e) => setName(e.target.value)}
+                                      className={cn(fieldCls, "mt-1.5")} autoFocus />
+                                  </div>
+                                  <div>
+                                    <FieldLabel>Email address *</FieldLabel>
+                                    <input required type="email" placeholder="you@example.com" value={email}
+                                      onChange={(e) => setEmail(e.target.value)}
+                                      className={cn(fieldCls, "mt-1.5")} />
+                                  </div>
+                                </div>
+                                <Button type="submit" size="lg" className="w-full justify-center" disabled={!name || !email}>
+                                  Continue →
+                                </Button>
+                              </form>
+                            </StepPanel>
+                          )}
+
+                          {/* Prep: attempt year + coaching */}
+                          {step === "prep" && (
+                            <StepPanel key="prep">
+                              <form onSubmit={handleComplete} className="flex flex-col gap-5 flex-1">
+                                <div className="flex-1 space-y-4">
+                                  <div>
+                                    <FieldLabel>Attempt year *</FieldLabel>
+                                    <Select.Root required value={attemptYear} onValueChange={setAttemptYear}>
+                                      <Select.Trigger className={cn(fieldCls, "mt-1.5 flex items-center justify-between cursor-pointer data-[placeholder]:text-[var(--color-text-muted)]")}>
+                                        <Select.Value placeholder="Select year" />
+                                        <Select.Icon asChild><ChevronDown size={14} className="text-[var(--color-text-muted)] shrink-0" /></Select.Icon>
+                                      </Select.Trigger>
+                                      <Select.Portal>
+                                        <Select.Content position="popper" sideOffset={4} className="z-[200] w-[--radix-select-trigger-width] overflow-hidden rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] shadow-lg">
+                                          <Select.Viewport className="p-1">
+                                            {[2025, 2026, 2027, 2028].map((y) => (
+                                              <Select.Item key={y} value={String(y)} className="flex items-center px-3 py-2 rounded-md text-sm font-satoshi text-[var(--color-text-primary)] cursor-pointer outline-none data-[highlighted]:bg-[var(--color-primary-light)] data-[highlighted]:text-[var(--color-primary)] transition-colors select-none">
+                                                <Select.ItemText>{y}</Select.ItemText>
+                                              </Select.Item>
+                                            ))}
+                                          </Select.Viewport>
+                                        </Select.Content>
+                                      </Select.Portal>
+                                    </Select.Root>
+                                  </div>
+                                  <div>
+                                    <FieldLabel>Coaching / prep mode *</FieldLabel>
+                                    <input required type="text" placeholder="Vision IAS, self-study…" value={coaching}
+                                      onChange={(e) => setCoaching(e.target.value)}
+                                      className={cn(fieldCls, "mt-1.5")} autoFocus />
+                                  </div>
+                                </div>
+                                <Button type="submit" size="lg" className="w-full justify-center" disabled={!attemptYear || !coaching}>
+                                  Done →
+                                </Button>
+                              </form>
+                            </StepPanel>
+                          )}
+
+                        </AnimatePresence>
+                      </div>
+                    </div>
+
                   </div>
-                </div>
-              </motion.div>
+                </motion.div>
+              </div>
             </Dialog.Content>
           </Dialog.Portal>
         )}
@@ -300,14 +275,14 @@ export function LoginModal() {
   );
 }
 
-/* ── Helpers ────────────────────────────────────────────── */
+/* ── Helpers ──────────────────────────────────────────────── */
 
 const fieldCls =
-  "w-full px-3.5 py-2.5 border border-[var(--color-border)] rounded-lg text-sm font-satoshi tracking-satoshi text-[var(--color-text-primary)] bg-[var(--color-surface)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/20 focus:border-[var(--color-primary)]/40 transition-all";
+  "w-full px-3.5 py-2.5 border border-[var(--color-border)] rounded-lg text-sm font-satoshi text-[var(--color-text-primary)] bg-[var(--color-surface)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/20 focus:border-[var(--color-primary)]/40 transition-all";
 
 function FieldLabel({ children }: { children: React.ReactNode }) {
   return (
-    <label className="block text-xs font-medium text-[var(--color-text-secondary)] font-satoshi tracking-satoshi">
+    <label className="block text-[11px] font-semibold uppercase tracking-wider text-[var(--color-text-muted)] font-satoshi">
       {children}
     </label>
   );
@@ -317,9 +292,9 @@ function StepPanel({ children }: { children: React.ReactNode }) {
   return (
     <motion.div
       className="flex-1 flex flex-col"
-      initial={{ opacity: 0, x: 12 }}
+      initial={{ opacity: 0, x: 14 }}
       animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: -12 }}
+      exit={{ opacity: 0, x: -14 }}
       transition={{ duration: 0.15, ease: "easeOut" }}
     >
       {children}
