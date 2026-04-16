@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { use, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { MOCK_PDFS } from "@/lib/mock-data";
@@ -9,8 +9,9 @@ import { ArrowLeft, Bookmark, BookmarkCheck, Download } from "@/components/ui/Ic
 import { useStore } from "@/store/useStore";
 import { cn } from "@/lib/utils";
 
-export default function ReaderPage({ params }: { params: { id: string } }) {
-  const pdf = MOCK_PDFS.find((p) => p.id === params.id);
+export default function ReaderPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
+  const pdf = MOCK_PDFS.find((p) => p.id === id);
   const { isSaved, toggleSave, user, openAuthModal } = useStore();
   const [showSummary, setShowSummary] = useState(false);
 

@@ -1,178 +1,152 @@
 "use client";
 
 import { useMemo } from "react";
-import { motion } from "framer-motion";
-import { Search } from "lucide-react";
+import Link from "next/link";
+import { ArrowRight } from "lucide-react";
 import { useStore } from "@/store/useStore";
-import { MOCK_PDFS, COLLECTIONS, type PDF } from "@/lib/mock-data";
+import { MOCK_PDFS, ALL_COLLECTIONS, type PDF, type Source } from "@/lib/mock-data";
 import { PDFCard } from "./PDFCard";
-import { FeedSectionSkeleton } from "@/components/ui/Skeleton";
+import { CollectionTile } from "./CollectionTile";
 
-/* ── Filter logic ────────────────────────────────────────── */
-
-function filterPDFs(
-  pdfs: PDF[],
-  state: {
-    searchQuery: string;
-    selectedSubject: string | null;
-    selectedSource: string | null;
-    selectedType: string | null;
-    activeCollection: string | null;
-  }
-): PDF[] {
-  const { searchQuery, selectedSubject, selectedSource, selectedType, activeCollection } = state;
-
+/* ── Filter logic ─────────────────────────────────────────────── */
+function applyFilters(pdfs: PDF[], params: {
+  selectedSubject: string | null;
+  selectedSource: string | null;
+  selectedType: string | null;
+  activeCollection: string | null;
+}): PDF[] {
+  const { selectedSubject, selectedSource, selectedType, activeCollection } = params;
   if (activeCollection) {
-    const col = COLLECTIONS.find((c) => c.id === activeCollection);
+    const col = ALL_COLLECTIONS.find((c) => c.id === activeCollection);
     if (col) {
-      if (col.subjectFilter) return pdfs.filter((p) => p.subject === col.subjectFilter);
-      if (col.sourceFilter) return pdfs.filter((p) => p.source === col.sourceFilter);
+      let r = pdfs;
+      if (col.subjectFilter) r = r.filter((p) => p.subject === col.subjectFilter);
+      if (col.sourceFilter)  r = r.filter((p) => p.source  === col.sourceFilter);
+      return r;
     }
   }
-
   let result = pdfs;
-  if (searchQuery.trim()) {
-    const q = searchQuery.toLowerCase();
-    result = result.filter(
-      (p) =>
-        p.title.toLowerCase().includes(q) ||
-        p.summary.toLowerCase().includes(q) ||
-        p.tags.some((t) => t.toLowerCase().includes(q)) ||
-        p.author.toLowerCase().includes(q)
-    );
-  }
   if (selectedSubject) result = result.filter((p) => p.subject === selectedSubject);
-  if (selectedSource) result = result.filter((p) => p.source === selectedSource);
-  if (selectedType) result = result.filter((p) => p.type === selectedType);
-
+  if (selectedSource)  result = result.filter((p) => p.source  === selectedSource);
+  if (selectedType)    result = result.filter((p) => p.type    === selectedType);
   return result;
 }
 
-function groupBySubject(pdfs: PDF[]): Record<string, PDF[]> {
-  return pdfs.reduce<Record<string, PDF[]>>((acc, pdf) => {
-    if (!acc[pdf.subject]) acc[pdf.subject] = [];
-    acc[pdf.subject].push(pdf);
-    return acc;
-  }, {});
-}
-
-/* ── Section titles — near-black, size/weight only hierarchy ── */
-const SECTION_META: Record<string, { title: string; subtitle: string }> = {
-  GS1: { title: "History, Geography & Society", subtitle: "GS Paper 1" },
-  GS2: { title: "Polity, Governance & International Relations", subtitle: "GS Paper 2" },
-  GS3: { title: "Economy, Environment & Technology", subtitle: "GS Paper 3" },
-  GS4: { title: "Ethics, Integrity & Aptitude", subtitle: "GS Paper 4" },
-  CA:  { title: "Current Affairs", subtitle: "Monthly compilations" },
-  Optional: { title: "Optional Subjects", subtitle: "Specialisation papers" },
+const SOURCE_LABEL: Record<Source, string> = {
+  VisionIAS: "Vision IAS", ForumIAS: "Forum IAS", DrishtiIAS: "Drishti IAS",
+  ShankarIAS: "Shankar IAS", InsightsIAS: "Insights IAS", StudyIQ: "Study IQ",
+  NCERT: "NCERT", PYQ: "Previous Year Questions",
 };
 
-/* ── PDFFeed ─────────────────────────────────────────────── */
+const COACHING_ROWS: Source[] = ["VisionIAS", "ForumIAS", "DrishtiIAS"];
 
-export function PDFFeed({ loading = false }: { loading?: boolean }) {
-  const {
-    searchQuery,
-    selectedSubject,
-    selectedSource,
-    selectedType,
-    activeCollection,
-  } = useStore();
-
-  const isFiltered = searchQuery || selectedSubject || selectedSource || selectedType || activeCollection;
-
-  const filtered = useMemo(
-    () => filterPDFs(MOCK_PDFS, { searchQuery, selectedSubject, selectedSource, selectedType, activeCollection }),
-    [searchQuery, selectedSubject, selectedSource, selectedType, activeCollection]
-  );
-
-  if (loading) return <FeedSectionSkeleton />;
-
-  /* ── Filtered / search view ── */
-  if (isFiltered) {
-    const label = activeCollection
-      ? (COLLECTIONS.find((c) => c.id === activeCollection)?.label ?? "Collection")
-      : searchQuery
-      ? `Results for "${searchQuery}"`
-      : "Filtered results";
-
-    return (
-      <div>
-        <div className="flex items-baseline justify-between mb-5">
-          <h2 className="font-sentient text-h2 text-[var(--color-text-primary)]">
-            {label}
-          </h2>
-          <span className="text-sm text-[var(--color-text-muted)] font-satoshi tracking-satoshi">
-            {filtered.length} {filtered.length === 1 ? "result" : "results"}
-          </span>
-        </div>
-
-        {filtered.length === 0 ? (
-          <EmptyState query={searchQuery} />
-        ) : (
-          <motion.div
-            className="space-y-2.5"
-            initial="hidden"
-            animate="visible"
-            variants={{ visible: { transition: { staggerChildren: 0.04 } }, hidden: {} }}
-          >
-            {filtered.map((pdf) => (
-              <PDFCard key={pdf.id} pdf={pdf} />
-            ))}
-          </motion.div>
-        )}
-      </div>
-    );
-  }
-
-  /* ── Default grouped home view ── */
-  const grouped = groupBySubject(MOCK_PDFS);
-  const subjectOrder = ["GS1", "GS2", "GS3", "GS4", "CA", "Optional"];
-
+/* ── Sub-components ───────────────────────────────────────────── */
+function FeedSection({ title, sourceId, pdfs }: { title: string; sourceId: string; pdfs: PDF[] }) {
+  if (!pdfs.length) return null;
   return (
-    <div className="space-y-10">
-      {subjectOrder
-        .filter((s) => grouped[s]?.length > 0)
-        .map((subject) => {
-          const meta = SECTION_META[subject] ?? { title: subject, subtitle: "" };
-          return (
-            <section key={subject}>
-              {/* Section header — size + weight only, no color */}
-              <div className="mb-4">
-                <p className="text-xs font-semibold uppercase tracking-widest text-[var(--color-text-muted)] font-satoshi mb-1">
-                  {meta.subtitle}
-                </p>
-                <h2 className="font-sentient text-h3 text-[var(--color-text-primary)]">
-                  {meta.title}
-                </h2>
-              </div>
+    <section>
+      <div className="flex items-baseline justify-between mb-4 px-4 sm:px-6 lg:px-8">
+        <h2 className="font-sentient text-h3 text-[var(--color-text-primary)]">{title}</h2>
+        <Link
+          href={`/source/${sourceId}`}
+          className="flex items-center gap-1 text-xs font-medium text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] font-satoshi uppercase tracking-widest transition-colors"
+        >
+          View all <ArrowRight size={12} />
+        </Link>
+      </div>
+      <div className="px-4 sm:px-6 lg:px-8">
+        <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 gap-4">
+          {pdfs.slice(0, 5).map((pdf) => (
+            <PDFCard key={pdf.id} pdf={pdf} />
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
 
-              <div className="space-y-2.5">
-                {grouped[subject].slice(0, 3).map((pdf) => (
-                  <PDFCard key={pdf.id} pdf={pdf} />
-                ))}
-              </div>
-            </section>
-          );
-        })}
+function ListEnd() {
+  return (
+    <div className="flex items-center gap-4 px-4 sm:px-6 lg:px-8 py-12">
+      <div className="flex-1 h-px bg-[var(--color-border)]" />
+      <span className="text-[11px] text-[var(--color-text-muted)] font-satoshi tracking-widest uppercase">
+        End of list
+      </span>
+      <div className="flex-1 h-px bg-[var(--color-border)]" />
     </div>
   );
 }
 
-/* ── Empty state ────────────────────────────────────────── */
+/* ── PDFFeed ─────────────────────────────────────────────────── */
+export function PDFFeed() {
+  const { selectedSubject, selectedSource, selectedType, activeCollection } = useStore();
+  const isFiltered = !!(selectedSubject || selectedSource || selectedType || activeCollection);
 
-function EmptyState({ query }: { query: string }) {
-  return (
-    <div className="flex flex-col items-center justify-center py-20 text-center">
-      <div className="w-12 h-12 rounded-full bg-[var(--color-surface-alt)] border border-[var(--color-border)] flex items-center justify-center mb-4">
-        <Search size={20} className="text-[var(--color-text-muted)]" />
+  const filteredPDFs = useMemo(
+    () => applyFilters(MOCK_PDFS, { selectedSubject, selectedSource, selectedType, activeCollection }),
+    [selectedSubject, selectedSource, selectedType, activeCollection]
+  );
+
+  /* ── Must be declared before any conditional return ── */
+  const bySource = useMemo(() => {
+    const map: Record<string, PDF[]> = {};
+    for (const pdf of MOCK_PDFS) {
+      if (!map[pdf.source]) map[pdf.source] = [];
+      map[pdf.source].push(pdf);
+    }
+    return map;
+  }, []);
+
+  /* ── Filtered view ── */
+  if (isFiltered) {
+    const label = activeCollection
+      ? (ALL_COLLECTIONS.find((c) => c.id === activeCollection)?.label ?? "Collection")
+      : "Filtered results";
+    return (
+      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex items-baseline justify-between mb-6">
+          <h2 className="font-sentient text-h3 text-[var(--color-text-primary)]">{label}</h2>
+          <span className="text-sm text-[var(--color-text-muted)] font-satoshi">
+            {filteredPDFs.length} {filteredPDFs.length === 1 ? "result" : "results"}
+          </span>
+        </div>
+        {filteredPDFs.length === 0 ? (
+          <div className="py-20 text-center text-sm text-[var(--color-text-muted)] font-satoshi">
+            No PDFs match the selected filters.
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 gap-4">
+            {filteredPDFs.map((pdf) => <PDFCard key={pdf.id} pdf={pdf} />)}
+          </div>
+        )}
+        <ListEnd />
       </div>
-      <h3 className="font-sentient text-h3 text-[var(--color-text-primary)] mb-2">
-        No results found
-      </h3>
-      <p className="text-sm text-[var(--color-text-secondary)] font-satoshi tracking-satoshi max-w-xs leading-relaxed">
-        {query
-          ? `No PDFs match "${query}". Try different keywords or adjust the filters.`
-          : "No PDFs match the selected filters."}
-      </p>
+    );
+  }
+
+  /* ── Default structured feed ── */
+  return (
+    <div className="max-w-[1400px] mx-auto space-y-12">
+      {/* 3 coaching rows */}
+      {COACHING_ROWS.map((src) => (
+        <FeedSection key={src} title={SOURCE_LABEL[src]} sourceId={src} pdfs={bySource[src] ?? []} />
+      ))}
+
+      {/* Other Collections — book-stack tiles */}
+      <section>
+        <div className="flex items-baseline justify-between mb-4 px-4 sm:px-6 lg:px-8">
+          <h2 className="font-sentient text-h3 text-[var(--color-text-primary)]">Other Collections</h2>
+        </div>
+        <div className="px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 gap-4 gap-y-6">
+            {ALL_COLLECTIONS.map((col, i) => (
+              <CollectionTile key={col.id} col={col} colorIndex={i} />
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <ListEnd />
     </div>
   );
 }
