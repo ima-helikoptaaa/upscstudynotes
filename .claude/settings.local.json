@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install *)",
+      "Bash(npm run *)",
+      "Bash(grep *)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git push *)",
+      "Bash(gh auth *)",
+      "Bash(gh repo *)",
+      "Bash(gh pr *)",
+      "Bash(git remote *)",
+      "Bash(git checkout *)",
+      "Bash(git rm *)",
+      "Bash(git branch *)",
+      "Bash(git stash *)"
+    ]
+  }
+}
