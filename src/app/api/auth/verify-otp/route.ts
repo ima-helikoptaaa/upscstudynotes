@@ -1,10 +1,7 @@
 import { prisma } from "@/lib/prisma";
-import { PrismaClient } from "@prisma/client";
 import { signAccessToken, signRefreshToken } from "@/lib/auth";
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
-
-type TxClient = Omit<PrismaClient, "$connect" | "$disconnect" | "$on" | "$transaction" | "$use" | "$extends">;
 
 export async function POST(request: NextRequest) {
   const { phone, countryCode = "+91", otp, name, attemptYear, coaching } = await request.json();
@@ -34,7 +31,7 @@ export async function POST(request: NextRequest) {
     data: { isVerified: true, verifiedAt: new Date() },
   });
 
-  const result = await prisma.$transaction(async (tx: TxClient) => {
+  const result = await prisma.$transaction(async (tx: typeof prisma) => {
     let user = await tx.user.findFirst({
       where: { countryCode, phone, isDeleted: false },
     });
