@@ -1,18 +1,61 @@
 "use client";
 
-import { useRef, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 
-const WORKER_SRC = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.9.155/pdf.worker.min.mjs`;
-
-let pdfjsLib: typeof import("pdfjs-dist") | null = null;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let pdfjsLib: any = null;
 async function getPdfjs() {
   if (pdfjsLib) return pdfjsLib;
   pdfjsLib = await import("pdfjs-dist");
-  pdfjsLib.GlobalWorkerOptions.workerSrc = WORKER_SRC;
+  pdfjsLib.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs";
   return pdfjsLib;
 }
 
 const thumbCache = new Map<string, string>();
+const inflight = new Map<string, Promise<string | null>>();
+
+function renderThumb(url: string, height: number): Promise<string | null> {
+  const cached = thumbCache.get(url);
+  if (cached) return Promise.resolve(cached);
+
+  const existing = inflight.get(url);
+  if (existing) return existing;
+
+  const p = (async () => {
+    try {
+      const pdfjs = await getPdfjs();
+      const proxyUrl = `/api/pdf-proxy?url=${encodeURIComponent(url)}`;
+      const res = await fetch(proxyUrl);
+      if (!res.ok) return null;
+      const buf = await res.arrayBuffer();
+      const pdf = await pdfjs.getDocument({ data: new Uint8Array(buf) }).promise;
+      const page = await pdf.getPage(1);
+
+      const scale = (height * 2) / page.getViewport({ scale: 1 }).height;
+      const viewport = page.getViewport({ scale });
+
+      const canvas = document.createElement("canvas");
+      canvas.width = viewport.width;
+      canvas.height = viewport.height;
+      const ctx = canvas.getContext("2d")!;
+
+      await page.render({ canvasContext: ctx, viewport }).promise;
+
+      const data = canvas.toDataURL("image/webp", 0.85);
+      thumbCache.set(url, data);
+      pdf.destroy();
+      return data;
+    } catch (err) {
+      console.error("PDFThumbnail render failed:", err);
+      return null;
+    } finally {
+      inflight.delete(url);
+    }
+  })();
+
+  inflight.set(url, p);
+  return p;
+}
 
 export function PDFThumbnail({
   url,
@@ -23,43 +66,16 @@ export function PDFThumbnail({
   height?: number;
   className?: string;
 }) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [dataUrl, setDataUrl] = useState<string | undefined>(thumbCache.get(url));
-  const [failed, setFailed] = useState(false);
+  const [dataUrl, setDataUrl] = useState<string | null | undefined>(thumbCache.get(url));
 
   useEffect(() => {
-    if (dataUrl || failed) return;
+    if (dataUrl !== undefined) return;
     let cancelled = false;
-
-    (async () => {
-      try {
-        const pdfjs = await getPdfjs();
-        const pdf = await pdfjs.getDocument({ url, disableAutoFetch: true, disableStream: true }).promise;
-        const page = await pdf.getPage(1);
-
-        const scale = (height * 2) / page.getViewport({ scale: 1 }).height;
-        const viewport = page.getViewport({ scale });
-
-        const canvas = document.createElement("canvas");
-        canvas.width = viewport.width;
-        canvas.height = viewport.height;
-        const ctx = canvas.getContext("2d")!;
-
-        await page.render({ canvasContext: ctx, viewport, canvas }).promise;
-
-        if (!cancelled) {
-          const data = canvas.toDataURL("image/webp", 0.85);
-          thumbCache.set(url, data);
-          setDataUrl(data);
-        }
-        pdf.destroy();
-      } catch {
-        if (!cancelled) setFailed(true);
-      }
-    })();
-
+    renderThumb(url, height).then((result) => {
+      if (!cancelled) setDataUrl(result);
+    });
     return () => { cancelled = true; };
-  }, [url, height, dataUrl, failed]);
+  }, [url, height, dataUrl]);
 
   if (dataUrl) {
     return (
@@ -72,5 +88,5 @@ export function PDFThumbnail({
     );
   }
 
-  return <canvas ref={canvasRef} className={className} style={{ display: "none" }} />;
+  return null;
 }
