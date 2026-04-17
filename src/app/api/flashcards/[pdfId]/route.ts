@@ -17,6 +17,6 @@ export async function GET(
   });
 
   return NextResponse.json({
-    data: flashcards.map((f) => ({ ...f, tags: JSON.parse(f.tags) })),
+    data: flashcards.map((f: Record<string, unknown>) => ({ ...f, tags: JSON.parse(f.tags as string) })),
   });
 }

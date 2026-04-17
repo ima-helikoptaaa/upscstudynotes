@@ -75,9 +75,9 @@ export async function POST(request: NextRequest) {
     include: { _count: { select: { flashcards: true } } },
   });
 
-  const pdfMap = new Map(pdfs.map((p) => [p.id, p]));
+  const pdfMap = new Map(pdfs.map((p: Record<string, unknown>) => [p.id as string, p]));
   const ordered = sortedPdfIds
-    .map((id) => pdfMap.get(id))
+    .map((id: string) => pdfMap.get(id))
     .filter(Boolean)
     .map((pdf) => dbPdfToUiPdf(pdf as Record<string, unknown>));
 

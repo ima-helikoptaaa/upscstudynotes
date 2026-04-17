@@ -39,7 +39,7 @@ export async function GET(request: NextRequest) {
     prisma.pdf.count({ where }),
   ]);
 
-  const data = pdfs.map((pdf) => dbPdfToUiPdf(pdf));
+  const data = pdfs.map((pdf: Record<string, unknown>) => dbPdfToUiPdf(pdf));
 
   return NextResponse.json({ data, total, page, limit });
 }

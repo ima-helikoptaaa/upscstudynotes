@@ -7,7 +7,7 @@ export async function GET() {
   });
 
   const withCounts = await Promise.all(
-    collections.map(async (c) => ({
+    collections.map(async (c: { id: string; name: string; description: string | null; createdAt: Date }) => ({
       ...c,
       pdfCount: await prisma.pdf.count({ where: { collection: c.name } }),
     }))

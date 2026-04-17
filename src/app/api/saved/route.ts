@@ -19,7 +19,7 @@ export async function GET() {
   });
 
   return NextResponse.json({
-    data: saved.map((s) => ({
+    data: saved.map((s: { pdf: Record<string, unknown> & { tags: string; _count: { flashcards: number } }; createdAt: Date }) => ({
       ...s.pdf,
       tags: JSON.parse(s.pdf.tags),
       flashcardCount: s.pdf._count.flashcards,

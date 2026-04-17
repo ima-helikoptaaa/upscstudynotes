@@ -17,5 +17,5 @@ export async function GET(
     return NextResponse.json({ error: "PDF not found" }, { status: 404 });
   }
 
-  return NextResponse.json(dbPdfToUiPdf(pdf));
+  return NextResponse.json(dbPdfToUiPdf(pdf as unknown as Record<string, unknown>));
 }

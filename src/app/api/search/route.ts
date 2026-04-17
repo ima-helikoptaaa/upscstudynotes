@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
   });
 
   return NextResponse.json({
-    data: pdfs.map((pdf) => ({
+    data: pdfs.map((pdf: Record<string, unknown> & { tags: string; _count: { flashcards: number } }) => ({
       ...pdf,
       tags: JSON.parse(pdf.tags),
       flashcardCount: pdf._count.flashcards,
