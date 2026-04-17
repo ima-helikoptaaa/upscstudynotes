@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useCallback } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { Bookmark, Download, ArrowRight } from "lucide-react";
@@ -8,6 +8,7 @@ import { useStore } from "@/store/useStore";
 import { type PDF } from "@/lib/mock-data";
 import { cn, triggerDownload } from "@/lib/utils";
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
+import { PDFThumbnail } from "@/components/pdf/PDFThumbnail";
 import { preload } from "swr";
 
 function fmtNum(n: number) {
@@ -31,30 +32,12 @@ const SUBJECT_LABEL: Record<string, string> = {
 };
 
 const THUMB_H = 160;
-const IFRAME_H = 740;
-
-function useLazyVisible(rootMargin = "200px") {
-  const ref = useRef<HTMLDivElement>(null);
-  const [visible, setVisible] = useState(false);
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const obs = new IntersectionObserver(
-      ([entry]) => { if (entry.isIntersecting) { setVisible(true); obs.disconnect(); } },
-      { rootMargin }
-    );
-    obs.observe(el);
-    return () => obs.disconnect();
-  }, [rootMargin]);
-  return { ref, visible };
-}
 
 export function PDFCard({ pdf }: { pdf: PDF }) {
   const { isSaved, toggleSave, user, openAuthModal, showToast } = useStore();
   const saved = isSaved(pdf.id);
   const flat = THUMB_FLAT[pdf.subject] ?? { bg: "#F3F4F6", text: "#374151" };
   const [confirmUnsave, setConfirmUnsave] = useState(false);
-  const { ref: thumbRef, visible: thumbVisible } = useLazyVisible();
 
   const handlePrefetch = useCallback(() => {
     const f = (url: string) => fetch(url).then((r) => r.json());
@@ -91,29 +74,10 @@ export function PDFCard({ pdf }: { pdf: PDF }) {
         >
 
           <div
-            ref={thumbRef}
             className="relative flex-shrink-0 overflow-hidden"
             style={{ height: THUMB_H, backgroundColor: flat.bg }}
           >
-            {thumbVisible && (
-              <iframe
-                src={`${pdf.file_url}#toolbar=0&navpanes=0&scrollbar=0&view=FitH`}
-                scrolling="no"
-                style={{
-                  position: "absolute",
-                  top: 0,
-                  left: 0,
-                  width: "calc(100% + 20px)",
-                  height: IFRAME_H,
-                  border: "none",
-                  pointerEvents: "none",
-                  display: "block",
-                }}
-                tabIndex={-1}
-                aria-hidden
-                title=""
-              />
-            )}
+            <PDFThumbnail url={pdf.file_url} height={THUMB_H} />
 
             <div className="absolute inset-0 z-[1] bg-black/0 group-hover:bg-black/10 transition-colors duration-200 pointer-events-none" />
 
