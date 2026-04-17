@@ -3,16 +3,23 @@
 import { use, useState } from "react";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { motion, AnimatePresence } from "framer-motion";
-import { ChevronDown } from "lucide-react";
+import { motion } from "framer-motion";
 import { useStore } from "@/store/useStore";
 import { MOCK_PDFS } from "@/lib/mock-data";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { LoginModal } from "@/components/auth/LoginModal";
 import { Tag } from "@/components/ui/Tag";
 import { Button } from "@/components/ui/Button";
-import { ArrowLeft, Download, Bookmark, BookmarkCheck, Sparkles } from "@/components/ui/Icons";
-import { cn } from "@/lib/utils";
+import { ArrowLeft, Download, Sparkles } from "@/components/ui/Icons";
+import { Bookmark } from "lucide-react";
+import { cn, triggerDownload } from "@/lib/utils";
+
+const NAVBAR_H = 64;
+
+function fmtNum(n: number) {
+  if (n >= 1000) return `${(n / 1000).toFixed(1)}K`;
+  return String(n);
+}
 
 const FLASHCARDS = [
   {
@@ -37,125 +44,191 @@ export default function PDFDetailPage({ params }: { params: Promise<{ id: string
   const pdf = MOCK_PDFS.find((p) => p.id === id);
   if (!pdf) notFound();
 
-  const { isSaved, toggleSave, user, openAuthModal } = useStore();
+  const { isSaved, toggleSave, user, openAuthModal, showToast } = useStore();
   const saved = isSaved(pdf.id);
 
   const handleDownload = () => {
-    if (!user) { openAuthModal(() => window.open(pdf.file_url, "_blank")); return; }
-    window.open(pdf.file_url, "_blank");
+    if (!user) { openAuthModal(() => { triggerDownload(pdf.file_url, pdf.title); showToast("Download started"); }); return; }
+    triggerDownload(pdf.file_url, pdf.title);
+    showToast("Download started");
   };
   const handleSave = () => {
     if (!user) { openAuthModal(() => toggleSave(pdf.id)); return; }
     toggleSave(pdf.id);
   };
 
-  const VIEWER_H = "calc(100vh - 104px)";
+  const ctaBar = (
+    <div className="flex gap-3">
+      <Button onClick={handleDownload} className="flex-1 justify-center" size="lg">
+        <Download size={15} />
+        Download PDF
+      </Button>
+      <Button
+        variant="secondary"
+        onClick={handleSave}
+        size="lg"
+        className={cn(saved && "border-[var(--color-primary)] text-[var(--color-primary)] bg-[var(--color-primary-light)] hover:bg-[var(--color-primary-light)]")}
+        aria-label={saved ? "Remove from saved" : "Save"}
+      >
+        <Bookmark size={16} fill={saved ? "currentColor" : "none"} />
+      </Button>
+    </div>
+  );
+
+  const metaContent = (
+    <>
+      <div className="grid grid-cols-2 gap-px bg-[var(--color-border)] rounded-xl overflow-hidden border border-[var(--color-border)]">
+        <MetaItem label="Type"      value={pdf.type.toUpperCase()} span />
+        <MetaItem label="Year"      value={`${pdf.year}`} />
+        <MetaItem label="Pages"     value={`${pdf.pages}`} />
+        <MetaItem label="Downloads" value={fmtNum(pdf.downloads)} />
+        <MetaItem label="Saves"     value={fmtNum(pdf.saves)} />
+      </div>
+
+      <div>
+        <SectionLabel icon={<Sparkles size={13} />} text="Summary" />
+        <p className="text-sm text-[var(--color-text-secondary)] font-satoshi leading-relaxed mt-2.5">
+          {pdf.summary}
+        </p>
+      </div>
+
+      <div>
+        <SectionLabel text="Flashcards" />
+        <div className="space-y-2 mt-3">
+          {FLASHCARDS.map((card, i) => (
+            <FlashCard key={card.id} index={i} front={card.front} back={card.back} />
+          ))}
+        </div>
+      </div>
+    </>
+  );
+
+  const PANEL_H = `calc(100vh - ${NAVBAR_H}px)`;
 
   return (
     <AppLayout>
-      <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-10 py-7">
 
-        <Link
-          href="/"
-          className="inline-flex items-center gap-1.5 text-sm text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-colors font-satoshi mb-6"
-        >
-          <ArrowLeft size={14} />
-          Back to library
-        </Link>
-
-        <div className="grid lg:grid-cols-[1fr_360px] gap-8 items-start">
-
-          {/* ── Left: PDF viewer (sticky) ─────────────────── */}
-          <motion.div
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.2 }}
-            className="sticky top-[72px]"
+      {/* ── DESKTOP ─────────────────────────────────────────────
+          Outer wrapper is exactly viewport-height so it never
+          scrolls. Both columns fill that height independently.
+          No framer-motion y-transforms inside overflow:hidden —
+          only opacity fades to avoid clip-at-bottom bugs.
+      ──────────────────────────────────────────────────────── */}
+      <div
+        className="hidden lg:flex flex-col"
+        style={{ height: PANEL_H }}
+      >
+        {/* Back strip */}
+        <div className="shrink-0 px-10 pt-4 pb-2">
+          <Link
+            href="/"
+            className="inline-flex items-center gap-2 text-sm text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-colors font-satoshi"
           >
-            <div
-              className="w-full rounded-xl overflow-hidden border border-[var(--color-border)] bg-[var(--color-surface)] shadow-sm"
-              style={{ height: VIEWER_H }}
-            >
-              <iframe
-                src={`${pdf.file_url}#toolbar=0&navpanes=0&scrollbar=1`}
-                className="w-full h-full"
-                title={pdf.title}
-              />
-            </div>
+            <ArrowLeft size={16} />
+            Back
+          </Link>
+        </div>
+
+        {/* Two-column grid — fills remaining height, clips overflow */}
+        <div className="flex-1 min-h-0 grid grid-cols-[1fr_360px] gap-8 px-10 pb-5">
+
+          {/* Left: PDF viewer — opacity-only fade (no y shift) */}
+          <motion.div
+            className="min-h-0 h-full rounded-xl overflow-hidden border border-[var(--color-border)] bg-[var(--color-surface)] shadow-sm"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.25 }}
+          >
+            <iframe
+              src={`${pdf.file_url}#toolbar=0&navpanes=0&scrollbar=1`}
+              className="w-full h-full"
+              title={pdf.title}
+            />
           </motion.div>
 
-          {/* ── Right: scrollable meta + sticky actions ────── */}
+          {/* Right: info column — flex col, fills grid cell height */}
           <motion.div
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.2, delay: 0.06 }}
-            className="sticky top-[72px] flex flex-col"
-            style={{ height: VIEWER_H }}
+            className="min-h-0 h-full flex flex-col"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.25, delay: 0.05 }}
           >
-            {/* Scrollable content */}
-            <div className="flex-1 min-h-0 overflow-y-auto space-y-6 pr-1 pb-4">
-
-              {/* Title + tags */}
-              <div>
-                <h1 className="font-sentient text-[1.55rem] leading-snug tracking-tight text-[var(--color-text-primary)] mb-3">
-                  {pdf.title}
-                </h1>
-                <div className="flex flex-wrap gap-1.5">
-                  <Tag label={pdf.subject} variant="subject" />
-                  <Tag label={pdf.source} variant="source" />
-                  {pdf.tags.map((tag) => (
-                    <Tag key={tag} label={tag} />
-                  ))}
-                </div>
+            {/* Title + tags — always visible, never scrolls away */}
+            <div className="shrink-0 pb-4 border-b border-[var(--color-border)] mb-4">
+              <h1 className="font-sentient text-[1.5rem] leading-snug tracking-tight text-[var(--color-text-primary)] mb-3">
+                {pdf.title}
+              </h1>
+              <div className="flex flex-wrap gap-1.5">
+                <Tag label={pdf.subject} variant="subject" />
+                <Tag label={pdf.source} variant="source" />
+                {pdf.tags.map((tag) => <Tag key={tag} label={tag} />)}
               </div>
-
-              {/* Meta grid */}
-              <div className="grid grid-cols-2 gap-px bg-[var(--color-border)] rounded-xl overflow-hidden border border-[var(--color-border)]">
-                <MetaItem label="Author" value={pdf.author} />
-                <MetaItem label="Pages"  value={`${pdf.pages}`} />
-                <MetaItem label="Year"   value={`${pdf.year}`} />
-                <MetaItem label="Type"   value={pdf.type.toUpperCase()} />
-              </div>
-
-              {/* Summary */}
-              <div>
-                <SectionLabel icon={<Sparkles size={13} />} text="AI Summary" />
-                <p className="text-sm text-[var(--color-text-secondary)] font-satoshi leading-relaxed mt-2.5">
-                  {pdf.summary}
-                </p>
-              </div>
-
-              {/* Flashcards */}
-              <div>
-                <SectionLabel text="Sample Flashcards" />
-                <div className="space-y-2 mt-3">
-                  {FLASHCARDS.map((card, i) => (
-                    <FlashCard key={card.id} index={i} front={card.front} back={card.back} />
-                  ))}
-                </div>
-              </div>
-
             </div>
 
-            {/* Sticky actions — always visible at bottom */}
-            <div className="shrink-0 border-t border-[var(--color-border)] pt-4 flex gap-2">
-              <Button onClick={handleDownload} className="flex-1 justify-center" size="lg">
-                <Download size={15} />
-                Download PDF
-              </Button>
-              <Button
-                variant="secondary"
-                onClick={handleSave}
-                size="lg"
-                className={cn(saved && "border-[var(--color-accent)] text-[var(--color-accent)] bg-[var(--color-accent-light)] hover:bg-[var(--color-accent-light)]")}
-                aria-label={saved ? "Remove from saved" : "Save"}
-              >
-                {saved ? <BookmarkCheck size={16} /> : <Bookmark size={16} />}
-              </Button>
+            {/* Scrollable meta — flex-1 + min-h-0 ensures it shrinks to fit */}
+            <div className="flex-1 min-h-0 overflow-y-auto scrollbar-hide space-y-6 pr-0.5">
+              {metaContent}
+            </div>
+
+            {/* CTA bar — always anchored to bottom */}
+            <div className="shrink-0 border-t border-[var(--color-border)] pt-4 pb-1 mt-3">
+              {ctaBar}
             </div>
           </motion.div>
 
         </div>
+      </div>
+
+      {/* ── MOBILE ──────────────────────────────────────────────
+          Normal page scroll. Fixed CTA bar at bottom.
+      ──────────────────────────────────────────────────────── */}
+      <div className="lg:hidden">
+        {/* Back */}
+        <div className="px-4 sm:px-6 pt-5 pb-3">
+          <Link
+            href="/"
+            className="inline-flex items-center gap-2 text-sm text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-colors font-satoshi"
+          >
+            <ArrowLeft size={16} />
+            Back
+          </Link>
+        </div>
+
+        <div className="px-4 sm:px-6 pb-[80px]">
+          {/* Title + tags */}
+          <div className="mb-4">
+            <h1 className="font-sentient text-[1.4rem] leading-snug tracking-tight text-[var(--color-text-primary)] mb-3">
+              {pdf.title}
+            </h1>
+            <div className="flex flex-wrap gap-1.5">
+              <Tag label={pdf.subject} variant="subject" />
+              <Tag label={pdf.source} variant="source" />
+              {pdf.tags.map((tag) => <Tag key={tag} label={tag} />)}
+            </div>
+          </div>
+
+          {/* PDF viewer */}
+          <div
+            className="w-full rounded-xl overflow-hidden border border-[var(--color-border)] bg-[var(--color-surface)] shadow-sm mb-6"
+            style={{ height: "min(75vw, 440px)" }}
+          >
+            <iframe
+              src={`${pdf.file_url}#toolbar=0&navpanes=0&scrollbar=1`}
+              className="w-full h-full"
+              title={pdf.title}
+            />
+          </div>
+
+          {/* Meta */}
+          <div className="space-y-6">
+            {metaContent}
+          </div>
+        </div>
+      </div>
+
+      {/* Mobile CTAs — fixed at bottom of viewport */}
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 z-20 bg-[var(--color-surface)] border-t border-[var(--color-border)] px-4 py-3">
+        {ctaBar}
       </div>
 
       <LoginModal />
@@ -165,9 +238,9 @@ export default function PDFDetailPage({ params }: { params: Promise<{ id: string
 
 /* ── Sub-components ──────────────────────────────────────────── */
 
-function MetaItem({ label, value }: { label: string; value: string }) {
+function MetaItem({ label, value, span }: { label: string; value: string; span?: boolean }) {
   return (
-    <div className="px-4 py-3 bg-[var(--color-surface-alt)]">
+    <div className={`px-4 py-3 bg-[var(--color-surface-alt)]${span ? " col-span-2" : ""}`}>
       <p className="text-[10px] uppercase tracking-widest font-semibold text-[var(--color-text-muted)] font-satoshi mb-0.5">{label}</p>
       <p className="text-sm font-semibold text-[var(--color-text-primary)] font-satoshi">{value}</p>
     </div>
@@ -184,67 +257,65 @@ function SectionLabel({ text, icon }: { text: string; icon?: React.ReactNode }) 
 }
 
 function FlashCard({ front, back, index }: { front: string; back: string; index: number }) {
-  const [open, setOpen] = useState(false);
+  const [flipped, setFlipped] = useState(false);
 
   return (
     <div
-      className={cn(
-        "rounded-xl overflow-hidden border transition-all duration-200",
-        open ? "border-[var(--color-primary)]/25 shadow-sm" : "border-[var(--color-border)]"
-      )}
+      className="cursor-pointer select-none"
+      style={{ perspective: "1200px" }}
+      onClick={() => setFlipped((v) => !v)}
     >
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        className={cn(
-          "w-full flex items-start justify-between gap-3 px-4 py-3.5 text-left transition-colors",
-          open
-            ? "bg-[var(--color-primary-light)]"
-            : "bg-[var(--color-surface)] hover:bg-[var(--color-surface-alt)]"
-        )}
+      <motion.div
+        style={{ transformStyle: "preserve-3d", position: "relative" }}
+        animate={{ rotateY: flipped ? 180 : 0 }}
+        transition={{ duration: 0.45, ease: "easeOut" }}
       >
-        <div className="flex items-start gap-2.5 min-w-0">
-          <span
-            className={cn(
-              "shrink-0 w-5 h-5 rounded-md flex items-center justify-center text-[10px] font-bold font-satoshi mt-0.5 transition-colors",
-              open
-                ? "bg-[var(--color-primary)] text-white"
-                : "bg-[var(--color-surface-alt)] text-[var(--color-text-muted)]"
-            )}
-          >
-            {index + 1}
-          </span>
-          <span className="text-sm font-satoshi font-medium text-[var(--color-text-primary)] leading-snug">
-            {front}
-          </span>
+        {/* Front face */}
+        <div
+          className="rounded-xl p-4 min-h-[140px] flex flex-col justify-between"
+          style={{
+            backfaceVisibility: "hidden",
+            WebkitBackfaceVisibility: "hidden",
+            background: "var(--color-primary-light)",
+            border: "1px solid rgba(99,102,241,0.18)",
+          }}
+        >
+          <div className="flex items-start gap-2.5">
+            <span className="shrink-0 size-5 rounded-md bg-[var(--color-primary)] text-white text-[10px] font-bold font-satoshi flex items-center justify-center mt-0.5">
+              {index + 1}
+            </span>
+            <p className="text-[13px] font-satoshi font-medium text-[var(--color-text-primary)] leading-snug text-pretty">
+              {front}
+            </p>
+          </div>
+          <p className="text-[10.5px] font-satoshi text-[var(--color-primary)]/45 text-right mt-3">
+            Tap to reveal →
+          </p>
         </div>
-        <ChevronDown
-          size={15}
-          className={cn(
-            "shrink-0 mt-0.5 transition-transform duration-200",
-            open ? "rotate-180 text-[var(--color-primary)]" : "text-[var(--color-text-muted)]"
-          )}
-        />
-      </button>
 
-      <AnimatePresence initial={false}>
-        {open && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.2, ease: "easeOut" }}
-            className="overflow-hidden"
-          >
-            <div className="px-4 pt-3 pb-4 flex gap-2.5 bg-[var(--color-surface)] border-t border-[var(--color-border)]">
-              <div className="w-5 shrink-0" />
-              <p className="text-sm text-[var(--color-text-secondary)] font-satoshi leading-relaxed">
-                {back}
-              </p>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+        {/* Back face */}
+        <div
+          className="absolute inset-0 rounded-xl p-4 flex flex-col justify-between bg-white"
+          style={{
+            backfaceVisibility: "hidden",
+            WebkitBackfaceVisibility: "hidden",
+            transform: "rotateY(180deg)",
+            border: "1px solid var(--color-border)",
+          }}
+        >
+          <div className="flex items-start gap-2.5">
+            <span className="shrink-0 size-5 rounded-md bg-emerald-500 text-white text-[10px] font-bold font-satoshi flex items-center justify-center mt-0.5">
+              A
+            </span>
+            <p className="text-[13px] font-satoshi text-[var(--color-text-secondary)] leading-relaxed text-pretty">
+              {back}
+            </p>
+          </div>
+          <p className="text-[10.5px] font-satoshi text-[var(--color-text-muted)] text-right mt-3">
+            ← Tap to flip back
+          </p>
+        </div>
+      </motion.div>
     </div>
   );
 }

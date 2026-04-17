@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * Centralised icon exports — backed by @hugeicons/core-free-icons.
+ * Centralised icon exports - backed by @hugeicons/core-free-icons.
  * All icons accept the same props: size, className, strokeWidth, color.
  * `primaryColor` defaults to "currentColor" so Tailwind text-* classes
  * (which set the CSS `color` property) are inherited automatically.

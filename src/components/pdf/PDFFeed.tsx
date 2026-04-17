@@ -48,7 +48,7 @@ function FeedSection({ title, sourceId, pdfs }: { title: string; sourceId: strin
       <div className="flex items-baseline justify-between mb-4 px-4 sm:px-6 lg:px-8">
         <h2 className="font-sentient text-h3 text-[var(--color-text-primary)]">{title}</h2>
         <Link
-          href={`/source/${sourceId}`}
+          href={`/collection/${sourceId}`}
           className="flex items-center gap-1 text-xs font-medium text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] font-satoshi uppercase tracking-widest transition-colors"
         >
           View all <ArrowRight size={12} />
@@ -67,7 +67,7 @@ function FeedSection({ title, sourceId, pdfs }: { title: string; sourceId: strin
 
 function ListEnd() {
   return (
-    <div className="flex items-center gap-4 px-4 sm:px-6 lg:px-8 py-12">
+    <div className="flex items-center gap-4 px-4 sm:px-6 lg:px-8 py-8">
       <div className="flex-1 h-px bg-[var(--color-border)]" />
       <span className="text-[11px] text-[var(--color-text-muted)] font-satoshi tracking-widest uppercase">
         End of list
@@ -132,7 +132,7 @@ export function PDFFeed() {
         <FeedSection key={src} title={SOURCE_LABEL[src]} sourceId={src} pdfs={bySource[src] ?? []} />
       ))}
 
-      {/* Other Collections — book-stack tiles */}
+      {/* Other Collections - book-stack tiles */}
       <section>
         <div className="flex items-baseline justify-between mb-4 px-4 sm:px-6 lg:px-8">
           <h2 className="font-sentient text-h3 text-[var(--color-text-primary)]">Other Collections</h2>

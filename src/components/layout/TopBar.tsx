@@ -23,7 +23,7 @@ export function TopBar() {
           <Menu size={18} />
         </button>
 
-        {/* Search trigger — pill shape, full-width clickable */}
+        {/* Search trigger - pill shape, full-width clickable */}
         <button
           onClick={openSearchOverlay}
           className={cn(

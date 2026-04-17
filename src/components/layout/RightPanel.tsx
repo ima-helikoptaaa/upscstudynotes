@@ -8,14 +8,15 @@ import { TrendingUp, LayoutGrid, ExternalLink } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const SUBJECT_ACCENT: Record<string, string> = {
-  GS1: "bg-blue-400",
-  GS2: "bg-emerald-400",
-  GS3: "bg-orange-400",
-  GS4: "bg-purple-400",
-  CA: "bg-amber-400",
-  Optional: "bg-pink-400",
-  ncert: "bg-sky-400",
-  pyq: "bg-rose-400",
+  GS1:      "bg-blue-400",
+  GS2:      "bg-emerald-400",
+  GS3:      "bg-orange-400",
+  GS4:      "bg-purple-400",
+  CSAT:     "bg-amber-400",
+  Optionals:"bg-pink-400",
+  Essay:    "bg-teal-400",
+  ncert:    "bg-sky-400",
+  pyq:      "bg-rose-400",
 };
 
 export function RightPanel() {

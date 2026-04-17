@@ -21,7 +21,7 @@ export default function HomePage() {
           }}
         />
 
-        {/* Parliament ASCII art — scrolls with hero */}
+        {/* Parliament ASCII art - scrolls with hero */}
         <HeroAscii />
 
         {/* Decorative bottom rule */}
@@ -47,11 +47,18 @@ export default function HomePage() {
       </div>
 
       {/* ── Feed ─────────────────────────────────────────────── */}
-      <div className="pb-16 pt-8">
+      <div className="pb-4 pt-8">
         <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 mb-4">
           <FilterBar />
         </div>
         <PDFFeed />
+      </div>
+
+      {/* ── Footer note ──────────────────────────────────────── */}
+      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 pb-10">
+        <p className="text-center text-[13px] text-[var(--color-text-muted)] font-satoshi">
+          Notes&apos; PDFs sourced from content available in public domain.
+        </p>
       </div>
 
       <LoginModal />

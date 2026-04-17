@@ -42,7 +42,7 @@ export function FilterPanel() {
 
   return (
     <div ref={containerRef} className="relative shrink-0">
-      {/* Trigger button — pill shape */}
+      {/* Trigger button - pill shape */}
       <button
         onClick={() => setIsOpen((o) => !o)}
         className={cn(

@@ -115,7 +115,7 @@ export const useStore = create<StoreState>((set, get) => ({
     const saved = get().savedCollections;
     const adding = !saved.includes(id);
     set({ savedCollections: adding ? [...saved, id] : saved.filter((s) => s !== id) });
-    if (adding) get().showToast("Collection saved");
+    if (adding) get().showToast("Collection saved to your library");
   },
   isCollectionSaved: (id) => get().savedCollections.includes(id),
 
@@ -123,7 +123,7 @@ export const useStore = create<StoreState>((set, get) => ({
     const saved = get().savedSources;
     const adding = !saved.includes(id);
     set({ savedSources: adding ? [...saved, id] : saved.filter((s) => s !== id) });
-    if (adding) get().showToast("Source saved");
+    if (adding) get().showToast("Collection saved to your library");
   },
   isSourceSaved: (id) => get().savedSources.includes(id),
 
