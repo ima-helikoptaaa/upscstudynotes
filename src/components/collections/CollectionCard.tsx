@@ -1,7 +1,9 @@
 "use client";
 
+import useSWR from "swr";
 import { useStore } from "@/store/useStore";
-import { MOCK_PDFS, type Subject } from "@/lib/mock-data";
+import { type PDF } from "@/lib/mock-data";
+import { fetcher } from "@/lib/fetcher";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
@@ -10,7 +12,7 @@ import { useRouter } from "next/navigation";
 interface CollectionCardProps {
   id: string;
   label: string;
-  subjectFilter: Subject | null;
+  subjectFilter: string | null;
   sourceFilter: string | null;
 }
 
@@ -29,7 +31,9 @@ export function CollectionCard({ id, label, subjectFilter, sourceFilter }: Colle
   const { setActiveCollection } = useStore();
   const router = useRouter();
 
-  const pdfCount = MOCK_PDFS.filter((p) => {
+  const { data: pdfRes } = useSWR<{ data: PDF[] }>("/api/pdfs?limit=500", fetcher);
+  const allPdfs = pdfRes?.data ?? [];
+  const pdfCount = allPdfs.filter((p) => {
     if (subjectFilter) return p.subject === subjectFilter;
     if (sourceFilter) return p.source === sourceFilter;
     return true;

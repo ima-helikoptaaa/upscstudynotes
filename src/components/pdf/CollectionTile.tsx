@@ -2,7 +2,9 @@
 
 import { useRouter } from "next/navigation";
 import { ArrowRight } from "lucide-react";
-import { MOCK_PDFS, type CollectionDef } from "@/lib/mock-data";
+import useSWR from "swr";
+import { type CollectionDef, type PDF } from "@/lib/mock-data";
+import { fetcher } from "@/lib/fetcher";
 
 export type { CollectionDef };
 
@@ -30,7 +32,10 @@ export function CollectionTile({ col, colorIndex = 0, mini = false }: Collection
   const colors = PASTEL_PALETTE[colorIndex % PASTEL_PALETTE.length];
   const tabH = mini ? 10 : 12;
 
-  const count = MOCK_PDFS.filter(
+  const { data: pdfRes } = useSWR<{ data: PDF[] }>("/api/pdfs?limit=500", fetcher);
+  const allPdfs = pdfRes?.data ?? [];
+
+  const count = allPdfs.filter(
     (p) =>
       (!col.subjectFilter || p.subject === col.subjectFilter) &&
       (!col.sourceFilter || p.source === col.sourceFilter)
@@ -40,13 +45,9 @@ export function CollectionTile({ col, colorIndex = 0, mini = false }: Collection
     <button
       onClick={() => router.push(`/collection/${col.id}`)}
       className="group w-full text-left"
-      /* paddingTop = tab height + gap; paddingBottom = space for stack peek */
       style={{ paddingTop: tabH + 4, paddingBottom: 10, paddingLeft: 2, paddingRight: 2 }}
     >
-      {/* Stacking context so z-index works locally */}
       <div className="relative" style={{ isolation: "isolate" }}>
-
-        {/* Back paper — peeks most from below, no rotation */}
         <span
           aria-hidden
           className="absolute rounded-xl"
@@ -59,8 +60,6 @@ export function CollectionTile({ col, colorIndex = 0, mini = false }: Collection
             border: "1px solid rgba(0,0,0,0.04)",
           }}
         />
-
-        {/* Mid paper — peeks a bit less */}
         <span
           aria-hidden
           className="absolute rounded-xl"
@@ -73,13 +72,10 @@ export function CollectionTile({ col, colorIndex = 0, mini = false }: Collection
             border: "1px solid rgba(0,0,0,0.05)",
           }}
         />
-
-        {/* Folder — z-index 1 keeps it above the paper stack */}
         <div
           className="relative transition-transform duration-200 group-hover:-translate-y-1"
           style={{ zIndex: 1 }}
         >
-          {/* Tab ear */}
           <div
             aria-hidden
             style={{
@@ -94,8 +90,6 @@ export function CollectionTile({ col, colorIndex = 0, mini = false }: Collection
               borderBottom: "none",
             }}
           />
-
-          {/* Folder body */}
           <div
             className="border border-black/[0.06]"
             style={{
@@ -121,7 +115,6 @@ export function CollectionTile({ col, colorIndex = 0, mini = false }: Collection
             </div>
           </div>
         </div>
-
       </div>
     </button>
   );

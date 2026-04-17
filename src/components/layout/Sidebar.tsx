@@ -118,7 +118,7 @@ export function Sidebar() {
           {user ? (
             <div className="flex items-center gap-2.5 px-2 py-2">
               <div className="w-7 h-7 rounded-full bg-[var(--color-primary-light)] text-[var(--color-primary)] text-xs font-medium flex items-center justify-center shrink-0 font-satoshi">
-                {user.name.charAt(0).toUpperCase()}
+                {(user.name || "U").charAt(0).toUpperCase()}
               </div>
               <div className="min-w-0">
                 <p className="text-sm font-medium text-[var(--color-text-primary)] truncate leading-none font-satoshi tracking-satoshi">

@@ -5,10 +5,12 @@ import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, Search, Sparkles } from "lucide-react";
+import useSWR from "swr";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { PDFCard } from "@/components/pdf/PDFCard";
 import { LoginModal } from "@/components/auth/LoginModal";
-import { MOCK_PDFS } from "@/lib/mock-data";
+import { type PDF } from "@/lib/mock-data";
+import { fetcher } from "@/lib/fetcher";
 import { useRouter } from "next/navigation";
 
 /* ── AI briefs (same as overlay) ────────────────────────────── */
@@ -167,21 +169,45 @@ function PageSearchBar({ defaultValue }: { defaultValue: string }) {
   );
 }
 
+function useRagSearch(query: string) {
+  const { data, isLoading } = useSWR<{ data: PDF[]; total: number; snippets: Record<string, string[]> }>(
+    query.length >= 2 ? ["rag-search", query] : null,
+    () =>
+      fetch("/api/rag-search", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query, limit: 50 }),
+      }).then((r) => r.json()),
+    { revalidateOnFocus: false }
+  );
+  return { data, isLoading };
+}
+
 function SearchResults() {
   const params = useSearchParams();
   const q = params.get("q") ?? "";
 
-  const results =
-    q.length >= 2
-      ? MOCK_PDFS.filter(
-          (p) =>
-            p.title.toLowerCase().includes(q.toLowerCase()) ||
-            p.summary.toLowerCase().includes(q.toLowerCase()) ||
-            p.tags.some((t) => t.toLowerCase().includes(q.toLowerCase())) ||
-            p.subject.toLowerCase().includes(q.toLowerCase()) ||
-            p.source.toLowerCase().includes(q.toLowerCase())
-        )
-      : [];
+  const { data: ragData, isLoading: ragLoading } = useRagSearch(q);
+  const { data: sqlData, isLoading: sqlLoading } = useSWR<{ data: PDF[] }>(
+    q.length >= 2 ? `/api/pdfs?search=${encodeURIComponent(q)}&limit=100` : null,
+    fetcher
+  );
+
+  const ragResults = ragData?.data ?? [];
+  const sqlResults = sqlData?.data ?? [];
+  const snippets = ragData?.snippets ?? {};
+
+  const seenIds = new Set<string>();
+  const results: PDF[] = [];
+  for (const pdf of [...ragResults, ...sqlResults]) {
+    if (!seenIds.has(pdf.id)) {
+      seenIds.add(pdf.id);
+      results.push(pdf);
+    }
+  }
+
+  const isLoading = ragLoading || sqlLoading;
+  const showNoResults = !isLoading && q.length >= 2 && results.length === 0;
 
   return (
     <AppLayout>
@@ -229,7 +255,13 @@ function SearchResults() {
               Enter a search term to find PDFs.
             </p>
           </div>
-        ) : results.length === 0 ? (
+        ) : isLoading && results.length === 0 ? (
+          <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 gap-4 animate-pulse">
+            {Array.from({ length: 10 }).map((_, i) => (
+              <div key={i} className="h-[252px] bg-[var(--color-surface-alt)] rounded-2xl" />
+            ))}
+          </div>
+        ) : showNoResults ? (
           <div className="flex flex-col items-center justify-center py-16 text-center">
             <p className="font-sentient text-h3 text-[var(--color-text-primary)] mb-2">No results found</p>
             <p className="text-sm text-[var(--color-text-secondary)] font-satoshi max-w-xs leading-relaxed mb-6">

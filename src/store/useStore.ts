@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { Subject, Source } from "@/lib/mock-data";
+// Subject and Source are now strings (not strict union types)
 
 export interface User {
   id: string;
@@ -12,9 +12,9 @@ export interface User {
 
 interface StoreState {
   /* ── Filter state ─────────────────────────────────── */
-  selectedSubject:    Subject | null;
+  selectedSubject:    string | null;
   selectedType:       string | null;
-  selectedSource:     Source | null;
+  selectedSource:     string | null;
   searchQuery:        string;
   activeCollection:   string | null;
 
@@ -34,21 +34,22 @@ interface StoreState {
   toast:              string | null;
 
   /* ── Filter actions ───────────────────────────────── */
-  setSubject:           (subject: Subject | null) => void;
+  setSubject:           (subject: string | null) => void;
   setType:              (type: string | null) => void;
-  setSource:            (source: Source | null) => void;
+  setSource:            (source: string | null) => void;
   setSearchQuery:       (q: string) => void;
   setActiveCollection:  (collection: string | null) => void;
   resetFilters:         () => void;
 
   /* ── Auth actions ─────────────────────────────────── */
-  setUser:       (user: User) => void;
+  setUser:       (user: User | null, showWelcome?: boolean) => void;
   logout:        () => void;
   openAuthModal: (onSuccess?: () => void) => void;
   closeAuthModal:() => void;
   closeWelcome:  () => void;
 
   /* ── Save actions ─────────────────────────────────── */
+  setSavedItems:         (ids: string[]) => void;
   toggleSave:            (id: string) => void;
   isSaved:               (id: string) => boolean;
   toggleSaveCollection:  (id: string) => void;
@@ -97,12 +98,13 @@ export const useStore = create<StoreState>((set, get) => ({
   resetFilters: () =>
     set({ selectedSubject: null, selectedType: null, selectedSource: null, searchQuery: "", activeCollection: null }),
 
-  setUser: (user) => set({ user, isAuthModalOpen: false, isWelcomeOpen: true }),
+  setUser: (user, showWelcome) => set({ user, isAuthModalOpen: false, ...(showWelcome ? { isWelcomeOpen: true } : {}) }),
   logout:  ()     => set({ user: null, savedItems: [], savedCollections: [], savedSources: [] }),
   openAuthModal: (onSuccess)=> set({ isAuthModalOpen: true, authRedirectAction: onSuccess ?? null }),
   closeAuthModal:()         => set({ isAuthModalOpen: false, authRedirectAction: null }),
   closeWelcome:  ()         => set({ isWelcomeOpen: false }),
 
+  setSavedItems: (ids) => set({ savedItems: ids }),
   toggleSave: (id) => {
     const saved = get().savedItems;
     const adding = !saved.includes(id);

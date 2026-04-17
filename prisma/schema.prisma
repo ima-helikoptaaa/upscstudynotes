@@ -1,0 +1,154 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id          String  @id @default(uuid())
+  countryCode String  @default("+91") @map("country_code")
+  phone       String
+  name        String?
+  attemptYear Int?    @map("attempt_year")
+  coaching    String?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  isDeleted   Boolean  @default(false) @map("is_deleted")
+
+  accounts   Account[]
+  savedItems SavedItem[]
+  downloads  Download[]
+  otps       OtpValidation[]
+
+  @@unique([countryCode, phone])
+  @@map("users")
+}
+
+model Account {
+  id                String @id @default(uuid())
+  userId            String @map("user_id")
+  type              String @default("phone")
+  provider          String @default("phone")
+  providerAccountId String @map("provider_account_id")
+  isDeleted         Boolean @default(false) @map("is_deleted")
+
+  user User @relation(fields: [userId], references: [id])
+  jwts JWT[]
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model JWT {
+  id                    String    @id @default(uuid())
+  refreshToken          String?   @map("refresh_token")
+  refreshTokenExpiresAt DateTime? @map("refresh_token_expires_at")
+  accountId             String    @map("account_id")
+  isDeleted             Boolean   @default(false) @map("is_deleted")
+  createdAt             DateTime  @default(now()) @map("created_at")
+
+  account Account @relation(fields: [accountId], references: [id])
+
+  @@map("jwts")
+}
+
+model OtpValidation {
+  id              String    @id @default(uuid())
+  countryCode     String    @map("country_code")
+  phone           String
+  userId          String?   @map("user_id")
+  otp             String
+  expiresAt       DateTime  @map("expires_at")
+  isVerified      Boolean   @default(false) @map("is_verified")
+  verifiedAt      DateTime? @map("verified_at")
+  ipAddress       String    @default("unknown") @map("ip_address")
+  userAgent       String    @default("unknown") @map("user_agent")
+  lastSentVia     String    @default("SMS") @map("last_sent_via")
+  lastTriggerTime DateTime  @default(now()) @map("last_trigger_time")
+  isDeleted       Boolean   @default(false) @map("is_deleted")
+  createdAt       DateTime  @default(now()) @map("created_at")
+
+  user User? @relation(fields: [userId], references: [id])
+
+  @@map("otp_validations")
+}
+
+model Pdf {
+  id          String  @id
+  path        String
+  source      String
+  subfolder   String?
+  filename    String
+  gsPaper     String  @map("gs_paper")
+  subject     String
+  topic       String
+  contentType String  @map("content_type")
+  collection  String?
+  year        Int?
+  month       Int?
+  tags        String  @default("[]")
+  s3Key       String? @map("s3_key")
+  pageCount   Int?    @map("page_count")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  flashcards Flashcard[]
+  savedItems SavedItem[]
+  downloads  Download[]
+
+  @@map("pdfs")
+}
+
+model Collection {
+  id          String  @id @default(uuid())
+  name        String  @unique
+  description String?
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@map("collections")
+}
+
+model SavedItem {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  pdfId     String   @map("pdf_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id])
+  pdf  Pdf  @relation(fields: [pdfId], references: [id])
+
+  @@unique([userId, pdfId])
+  @@map("saved_items")
+}
+
+model Flashcard {
+  id          String @id
+  pdfId       String @map("pdf_id")
+  source      String
+  gsPaper     String @map("gs_paper")
+  subject     String
+  topic       String
+  contentType String @map("content_type")
+  difficulty  String
+  question    String
+  answer      String
+  tags        String @default("[]")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  pdf Pdf @relation(fields: [pdfId], references: [id])
+
+  @@map("flashcards")
+}
+
+model Download {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  pdfId     String   @map("pdf_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id])
+  pdf  Pdf  @relation(fields: [pdfId], references: [id])
+
+  @@map("downloads")
+}

@@ -8,31 +8,26 @@ import { PDFCard } from "@/components/pdf/PDFCard";
 import { CollectionTile } from "@/components/pdf/CollectionTile";
 import { LoginModal } from "@/components/auth/LoginModal";
 import { useStore } from "@/store/useStore";
-import { MOCK_PDFS, ALL_COLLECTIONS, type CollectionDef, type Source } from "@/lib/mock-data";
+import useSWR from "swr";
+import { ALL_COLLECTIONS, SOURCE_LABEL as SL, type CollectionDef, type PDF } from "@/lib/mock-data";
+import { fetcher } from "@/lib/fetcher";
 import { cn } from "@/lib/utils";
-
-const SOURCE_LABEL: Record<string, string> = {
-  VisionIAS:   "Vision IAS",
-  ForumIAS:    "Forum IAS",
-  DrishtiIAS:  "Drishti IAS",
-  ShankarIAS:  "Shankar IAS",
-  InsightsIAS: "Insights IAS",
-  StudyIQ:     "Study IQ",
-  NCERT:       "NCERT",
-  PYQ:         "Previous Year Questions",
-};
 
 type Tab = "pdfs" | "collections";
 
 export default function SavedPage() {
   const [tab, setTab] = useState<Tab>("pdfs");
   const { savedItems, savedCollections } = useStore();
-  const savedPDFs = MOCK_PDFS.filter((p) => savedItems.includes(p.id));
+
+  const { data: allPdfsData } = useSWR<{ data: PDF[] }>("/api/pdfs?limit=500", fetcher);
+  const allPdfs = allPdfsData?.data ?? [];
+  const savedPDFs = allPdfs.filter((p) => savedItems.includes(p.id));
+
   const savedCols = savedCollections
     .map((id): CollectionDef | null => {
       const col = ALL_COLLECTIONS.find((c) => c.id === id);
       if (col) return col;
-      if (id in SOURCE_LABEL) return { id, label: SOURCE_LABEL[id], subjectFilter: null, sourceFilter: id as Source };
+      if (id in SL) return { id, label: SL[id], subjectFilter: null, sourceFilter: id };
       return null;
     })
     .filter((c): c is CollectionDef => c !== null);

@@ -100,7 +100,7 @@ export function FilterPanel() {
               ))}
             </FilterGroup>
 
-            <FilterGroup label="Source">
+            <FilterGroup label="Collection">
               {SOURCES.map((s) => (
                 <FilterChip
                   key={s}

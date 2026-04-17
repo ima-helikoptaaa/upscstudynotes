@@ -1,29 +1,17 @@
 "use client";
 
 import { use } from "react";
-import { notFound } from "next/navigation";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { ArrowLeft, Bookmark } from "lucide-react";
-import { MOCK_PDFS, type Source } from "@/lib/mock-data";
+import useSWR from "swr";
+import { SOURCE_LABEL, type PDF } from "@/lib/mock-data";
+import { fetcher } from "@/lib/fetcher";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { PDFCard } from "@/components/pdf/PDFCard";
 import { LoginModal } from "@/components/auth/LoginModal";
 import { useStore } from "@/store/useStore";
 import { cn } from "@/lib/utils";
-
-const SOURCE_LABEL: Record<string, string> = {
-  VisionIAS:   "Vision IAS",
-  ForumIAS:    "Forum IAS",
-  DrishtiIAS:  "Drishti IAS",
-  ShankarIAS:  "Shankar IAS",
-  InsightsIAS: "Insights IAS",
-  StudyIQ:     "Study IQ",
-  NCERT:       "NCERT",
-  PYQ:         "Previous Year Questions",
-};
-
-const VALID_SOURCES = new Set(Object.keys(SOURCE_LABEL));
 
 function ListEnd() {
   return (
@@ -37,17 +25,21 @@ function ListEnd() {
 
 export default function SourcePage({ params }: { params: Promise<{ id: string }> }) {
   const { id: sourceId } = use(params);
-  if (!VALID_SOURCES.has(sourceId)) notFound();
+  const decodedSource = decodeURIComponent(sourceId);
 
   const { isSourceSaved, toggleSaveSource, user, openAuthModal } = useStore();
-  const saved = isSourceSaved(sourceId);
+  const saved = isSourceSaved(decodedSource);
 
-  const pdfs = MOCK_PDFS.filter((p) => p.source === (sourceId as Source));
-  const label = SOURCE_LABEL[sourceId];
+  const { data, isLoading } = useSWR<{ data: PDF[] }>(
+    `/api/pdfs?source=${encodeURIComponent(decodedSource)}&limit=100`,
+    fetcher
+  );
+  const pdfs = data?.data ?? [];
+  const label = SOURCE_LABEL[decodedSource] ?? decodedSource;
 
   const handleSave = () => {
-    if (!user) { openAuthModal(() => toggleSaveSource(sourceId)); return; }
-    toggleSaveSource(sourceId);
+    if (!user) { openAuthModal(() => toggleSaveSource(decodedSource)); return; }
+    toggleSaveSource(decodedSource);
   };
 
   return (
@@ -65,7 +57,7 @@ export default function SourcePage({ params }: { params: Promise<{ id: string }>
           <div>
               <h1 className="font-sentient text-h2 text-[var(--color-text-primary)]">{label}</h1>
             <p className="text-sm text-[var(--color-text-secondary)] font-satoshi mt-1.5">
-              {pdfs.length} {pdfs.length === 1 ? "document" : "documents"}
+              {isLoading ? "..." : `${pdfs.length} ${pdfs.length === 1 ? "document" : "documents"}`}
             </p>
           </div>
           <button
@@ -78,13 +70,19 @@ export default function SourcePage({ params }: { params: Promise<{ id: string }>
             )}
           >
             <Bookmark size={14} fill={saved ? "currentColor" : "none"} />
-            {saved ? "Saved" : "Save source"}
+            {saved ? "Saved" : "Save collection"}
           </button>
         </div>
 
-        {pdfs.length === 0 ? (
+        {isLoading ? (
+          <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 gap-4 animate-pulse">
+            {[0, 1, 2, 3, 4].map((i) => (
+              <div key={i} className="h-[252px] bg-[var(--color-surface-alt)] rounded-2xl" />
+            ))}
+          </div>
+        ) : pdfs.length === 0 ? (
           <div className="py-24 text-center text-sm text-[var(--color-text-muted)] font-satoshi">
-            No PDFs from this source yet.
+            No PDFs in this collection yet.
           </div>
         ) : (
           <motion.div

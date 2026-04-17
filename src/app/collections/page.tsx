@@ -16,7 +16,7 @@ export default function CollectionsPage() {
           Collections
         </h1>
         <p className="text-sm text-[var(--color-text-secondary)] font-satoshi tracking-satoshi mt-1.5">
-          Curated sets of PDFs organised by paper and source.
+          Curated sets of PDFs organised by paper and collection.
         </p>
       </div>
 

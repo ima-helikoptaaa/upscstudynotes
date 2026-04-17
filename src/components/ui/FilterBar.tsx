@@ -3,14 +3,8 @@
 import { useState, useRef, useEffect } from "react";
 import { ChevronDown, X } from "lucide-react";
 import { useStore } from "@/store/useStore";
-import { SUBJECTS, type Subject, type Source } from "@/lib/mock-data";
+import { SUBJECTS, SOURCES, SOURCE_LABEL } from "@/lib/mock-data";
 import { cn } from "@/lib/utils";
-
-const COACHING_SOURCES = ["VisionIAS", "ForumIAS", "DrishtiIAS", "ShankarIAS", "InsightsIAS", "StudyIQ"];
-const COACHING_LABELS: Record<string, string> = {
-  VisionIAS: "Vision IAS", ForumIAS: "Forum IAS", DrishtiIAS: "Drishti IAS",
-  ShankarIAS: "Shankar IAS", InsightsIAS: "Insights IAS", StudyIQ: "Study IQ",
-};
 const FORMAT_OPTIONS = [
   { value: "notes", label: "Notes" },
   { value: "ncert", label: "Books" },
@@ -27,14 +21,14 @@ export function FilterBar() {
         label="Paper"
         options={SUBJECTS.map((s) => ({ value: s, label: s }))}
         selected={selectedSubject}
-        onSelect={(v) => setSubject(selectedSubject === v ? null : v as Subject)}
+        onSelect={(v) => setSubject(selectedSubject === v ? null : v)}
         onClear={() => setSubject(null)}
       />
       <FilterDropdown
-        label="Coaching"
-        options={COACHING_SOURCES.map((s) => ({ value: s, label: COACHING_LABELS[s] ?? s }))}
+        label="Collection"
+        options={SOURCES.map((s) => ({ value: s, label: SOURCE_LABEL[s] ?? s }))}
         selected={selectedSource}
-        onSelect={(v) => setSource(selectedSource === v ? null : v as Source)}
+        onSelect={(v) => setSource(selectedSource === v ? null : v)}
         onClear={() => setSource(null)}
       />
       <FilterDropdown

@@ -49,7 +49,7 @@ export function Navbar() {
                 )}
               >
                 <div className="w-6 h-6 rounded-full bg-[var(--color-primary)] text-white flex items-center justify-center text-[11px] font-medium font-satoshi shrink-0">
-                  {user.name.charAt(0).toUpperCase()}
+                  {(user.name || "U").charAt(0).toUpperCase()}
                 </div>
                 <span className="hidden sm:inline text-sm font-satoshi font-medium">Profile</span>
                 <ChevronDown

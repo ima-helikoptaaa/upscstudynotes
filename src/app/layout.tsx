@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
+import { SessionProvider } from "@/components/auth/SessionProvider";
+import { SWRProvider } from "@/components/SWRProvider";
 import "./globals.css";
 
 const satoshi = localFont({
@@ -31,7 +33,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${satoshi.variable} ${sentient.variable}`}>
-      <body>{children}</body>
+      <body><SWRProvider><SessionProvider>{children}</SessionProvider></SWRProvider></body>
     </html>
   );
 }

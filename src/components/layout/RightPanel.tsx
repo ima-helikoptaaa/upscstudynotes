@@ -1,7 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { COLLECTIONS, TRENDING_PDFS } from "@/lib/mock-data";
+import useSWR from "swr";
+import { COLLECTIONS, type PDF } from "@/lib/mock-data";
+import { fetcher } from "@/lib/fetcher";
 import { useStore } from "@/store/useStore";
 import { Tag } from "@/components/ui/Tag";
 import { TrendingUp, LayoutGrid, ExternalLink } from "lucide-react";
@@ -21,6 +23,8 @@ const SUBJECT_ACCENT: Record<string, string> = {
 
 export function RightPanel() {
   const { setActiveCollection, activeCollection } = useStore();
+  const { data: pdfRes } = useSWR<{ data: PDF[] }>("/api/pdfs?limit=4", fetcher);
+  const trendingPdfs = pdfRes?.data ?? [];
 
   return (
     <aside className="hidden xl:flex flex-col w-[232px] shrink-0 bg-[var(--color-surface-alt)] border-l border-[var(--color-border)]">
@@ -64,7 +68,7 @@ export function RightPanel() {
         <section>
           <PanelHeader icon={<TrendingUp size={12} />} label="Trending" />
           <div className="space-y-2 mt-2.5">
-            {TRENDING_PDFS.map((pdf, i) => (
+            {trendingPdfs.map((pdf, i) => (
               <Link key={pdf.id} href={`/pdf/${pdf.id}`}>
                 <div className="flex items-start gap-2.5 p-2.5 rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] hover:border-[var(--color-border-strong)] transition-colors group">
                   <span className="text-[11px] font-semibold text-[var(--color-text-muted)] font-satoshi mt-0.5 w-3.5 shrink-0 text-center">

@@ -59,8 +59,6 @@ function Confetti() {
 
 type Step = "phone" | "otp" | "details" | "prep";
 
-const MOCK_OTP = "123456";
-
 const STEP_META: Record<Step, { title: string; index: number }> = {
   phone:   { title: "Login to save and download", index: 0 },
   otp:     { title: "Login to save and download", index: 1 },
@@ -86,6 +84,7 @@ export function LoginModal() {
   const [coaching, setCoaching]       = useState("");
   const [loading, setLoading]         = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
+  const [demoOtp, setDemoOtp]         = useState<string | null>(null);
   const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   const otp = otpDigits.join("");
@@ -93,7 +92,7 @@ export function LoginModal() {
   const reset = () => {
     setStep("phone");
     setPhone(""); setOtpDigits(["","","","","",""]); setOtpError(false);
-    setName(""); setEmail(""); setAttemptYear(""); setCoaching("");
+    setName(""); setEmail(""); setAttemptYear(""); setCoaching(""); setDemoOtp(null);
   };
 
   const handleOtpChange = (index: number, value: string) => {
@@ -135,7 +134,17 @@ export function LoginModal() {
     e.preventDefault();
     if (phone.length < 10) return;
     setLoading(true);
-    await new Promise((r) => setTimeout(r, 700));
+    try {
+      const res = await fetch("/api/auth/send-otp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone }),
+      });
+      const data = await res.json();
+      if (data.demoOtp) setDemoOtp(data.demoOtp);
+    } catch {
+      // fall through — OTP step will still show
+    }
     setLoading(false);
     setStep("otp");
   };
@@ -143,13 +152,26 @@ export function LoginModal() {
   const handleVerifyOTP = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    await new Promise((r) => setTimeout(r, 500));
-    setLoading(false);
-    if (otp !== MOCK_OTP) { setOtpError(true); return; }
-    setOtpError(false);
-    // Mock: if phone ends in 0000, treat as returning user
-    if (phone.endsWith("0000")) { handleExistingUser(); return; }
-    setStep("details");
+    try {
+      const res = await fetch("/api/auth/verify-otp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone, otp }),
+      });
+      const data = await res.json();
+      setLoading(false);
+      if (!res.ok || data.error) { setOtpError(true); return; }
+      setOtpError(false);
+      if (data.user?.name) {
+        setUser({ id: data.user.id, name: data.user.name, phone, email: "", attemptYear: data.user.attemptYear, coaching: data.user.coaching }, true);
+        handleExistingUser();
+        return;
+      }
+      setStep("details");
+    } catch {
+      setLoading(false);
+      setOtpError(true);
+    }
   };
 
   const handleDetails = (e: React.FormEvent) => {
@@ -161,7 +183,7 @@ export function LoginModal() {
   const handleComplete = (e: React.FormEvent) => {
     e.preventDefault();
     const redirect = authRedirectAction;
-    setUser({ id: Math.random().toString(36).slice(2), name, email, phone, attemptYear: attemptYear ? parseInt(attemptYear) : undefined, coaching: coaching || undefined });
+    setUser({ id: Math.random().toString(36).slice(2), name, email, phone, attemptYear: attemptYear ? parseInt(attemptYear) : undefined, coaching: coaching || undefined }, true);
     playChime();
     setShowConfetti(true);
     setTimeout(() => setShowConfetti(false), 2200);
@@ -318,9 +340,16 @@ export function LoginModal() {
                                     ))}
                                   </div>
 
+                                  {demoOtp && (
+                                    <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-50 border border-amber-200">
+                                      <span className="text-[11px] text-amber-700 font-satoshi">Demo OTP:</span>
+                                      <span className="text-sm font-bold font-mono text-amber-900 tracking-widest">{demoOtp}</span>
+                                    </div>
+                                  )}
+
                                   {otpError && (
                                     <p className="text-xs text-red-500 font-satoshi">
-                                      Incorrect OTP. Use <strong>123456</strong> for this demo.
+                                      Incorrect OTP. Please try again.
                                     </p>
                                   )}
                                 </div>

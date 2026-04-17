@@ -3,7 +3,9 @@
 import { use, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { MOCK_PDFS } from "@/lib/mock-data";
+import useSWR from "swr";
+import { type PDF } from "@/lib/mock-data";
+import { fetcher } from "@/lib/fetcher";
 import { LoginModal } from "@/components/auth/LoginModal";
 import { ArrowLeft, Bookmark, BookmarkCheck, Download } from "@/components/ui/Icons";
 import { useStore } from "@/store/useStore";
@@ -11,7 +13,7 @@ import { cn } from "@/lib/utils";
 
 export default function ReaderPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
-  const pdf = MOCK_PDFS.find((p) => p.id === id);
+  const { data: pdf } = useSWR<PDF>(`/api/pdfs/${id}`, fetcher);
   const { isSaved, toggleSave, user, openAuthModal } = useStore();
   const [showSummary, setShowSummary] = useState(false);
 

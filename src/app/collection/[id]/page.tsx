@@ -1,28 +1,19 @@
 "use client";
 
-import { use, useState } from "react";
+import { use, useState, useMemo } from "react";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { ArrowLeft, Bookmark } from "lucide-react";
-import { MOCK_PDFS, ALL_COLLECTIONS, type Source } from "@/lib/mock-data";
+import useSWR from "swr";
+import { ALL_COLLECTIONS, SOURCE_LABEL, type PDF } from "@/lib/mock-data";
+import { fetcher } from "@/lib/fetcher";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { PDFCard } from "@/components/pdf/PDFCard";
 import { LoginModal } from "@/components/auth/LoginModal";
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
 import { useStore } from "@/store/useStore";
 import { cn } from "@/lib/utils";
-
-const SOURCE_LABEL: Record<string, string> = {
-  VisionIAS:   "Vision IAS",
-  ForumIAS:    "Forum IAS",
-  DrishtiIAS:  "Drishti IAS",
-  ShankarIAS:  "Shankar IAS",
-  InsightsIAS: "Insights IAS",
-  StudyIQ:     "Study IQ",
-  NCERT:       "NCERT",
-  PYQ:         "Previous Year Questions",
-};
 
 function ListEnd() {
   return (
@@ -35,7 +26,8 @@ function ListEnd() {
 }
 
 export default function CollectionPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params);
+  const { id: rawId } = use(params);
+  const id = decodeURIComponent(rawId);
 
   const col = ALL_COLLECTIONS.find((c) => c.id === id);
   const isSource = !col && id in SOURCE_LABEL;
@@ -47,13 +39,16 @@ export default function CollectionPage({ params }: { params: Promise<{ id: strin
   const label = col ? col.label : SOURCE_LABEL[id];
   const saved = isCollectionSaved(id);
 
-  const pdfs = col
-    ? MOCK_PDFS.filter(
-        (p) =>
-          (!col.subjectFilter || p.subject === col.subjectFilter) &&
-          (!col.sourceFilter  || p.source  === col.sourceFilter)
-      )
-    : MOCK_PDFS.filter((p) => p.source === (id as Source));
+  const apiUrl = col
+    ? col.subjectFilter
+      ? `/api/pdfs?subject=${col.subjectFilter}&limit=100`
+      : col.sourceFilter
+        ? `/api/pdfs?source=${encodeURIComponent(col.sourceFilter)}&limit=100`
+        : "/api/pdfs?limit=100"
+    : `/api/pdfs?source=${encodeURIComponent(id)}&limit=100`;
+
+  const { data, isLoading } = useSWR<{ data: PDF[] }>(apiUrl, fetcher);
+  const pdfs = useMemo(() => data?.data ?? [], [data]);
 
   const handleSave = () => {
     if (!user) {
@@ -79,7 +74,7 @@ export default function CollectionPage({ params }: { params: Promise<{ id: strin
           <div>
             <h1 className="font-sentient text-h2 text-[var(--color-text-primary)]">{label}</h1>
             <p className="text-sm text-[var(--color-text-secondary)] font-satoshi mt-1.5">
-              {pdfs.length} {pdfs.length === 1 ? "document" : "documents"}
+              {isLoading ? "..." : `${pdfs.length} ${pdfs.length === 1 ? "document" : "documents"}`}
             </p>
           </div>
           <button
@@ -96,7 +91,13 @@ export default function CollectionPage({ params }: { params: Promise<{ id: strin
           </button>
         </div>
 
-        {pdfs.length === 0 ? (
+        {isLoading ? (
+          <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 gap-4 animate-pulse">
+            {[0, 1, 2, 3, 4].map((i) => (
+              <div key={i} className="h-[252px] bg-[var(--color-surface-alt)] rounded-2xl" />
+            ))}
+          </div>
+        ) : pdfs.length === 0 ? (
           <div className="py-24 text-center text-sm text-[var(--color-text-muted)] font-satoshi">
             No PDFs in this collection yet.
           </div>

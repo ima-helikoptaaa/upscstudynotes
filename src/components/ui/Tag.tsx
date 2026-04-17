@@ -2,7 +2,7 @@ import { cn } from "@/lib/utils";
 
 interface TagProps {
   label: string;
-  variant?: "default" | "subject" | "source" | "type" | "active";
+  variant?: "default" | "subject" | "source" | "collection" | "type" | "active";
   className?: string;
   onClick?: () => void;
 }
@@ -40,6 +40,7 @@ export function Tag({ label, variant = "default", className, onClick }: TagProps
           "bg-[var(--color-primary-light)] text-[var(--color-primary)] border border-[var(--color-primary)]/20",
         variant === "subject" && (subjectColors[label] ?? "bg-gray-100 text-gray-700 border border-gray-200"),
         variant === "source"  && (sourceColors[label]  ?? "bg-gray-50  text-gray-600  border border-gray-100"),
+        variant === "collection" && (sourceColors[label] ?? "bg-gray-50  text-gray-600  border border-gray-100"),
         onClick && "cursor-pointer hover:opacity-75",
         className
       )}

@@ -5,9 +5,11 @@ import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Search, X, ArrowUpRight, Zap, ChevronRight, Loader2 } from "lucide-react";
 import Link from "next/link";
+import useSWR from "swr";
 import { useStore } from "@/store/useStore";
 import { BorderBeam } from "@/components/ui/BorderBeam";
-import { MOCK_PDFS, COLLECTIONS, type PDF } from "@/lib/mock-data";
+import { COLLECTIONS, type PDF } from "@/lib/mock-data";
+import { fetcher } from "@/lib/fetcher";
 import { THUMB_FLAT } from "@/components/pdf/PDFCard";
 import { cn } from "@/lib/utils";
 
@@ -59,18 +61,13 @@ function getAiBrief(query: string): string | null {
   return null;
 }
 
-function countResults(query: string): number {
-  const q = query.toLowerCase().trim();
-  if (!q) return 0;
-  return MOCK_PDFS.filter(
-    (p) =>
-      p.title.toLowerCase().includes(q) ||
-      p.summary.toLowerCase().includes(q) ||
-      p.tags.some((t) => t.toLowerCase().includes(q)) ||
-      p.author.toLowerCase().includes(q) ||
-      p.subject.toLowerCase().includes(q) ||
-      p.source.toLowerCase().includes(q)
-  ).length;
+function useSearchCount(query: string): number {
+  const q = query.trim();
+  const { data } = useSWR<{ total: number }>(
+    q.length >= 2 ? `/api/pdfs?search=${encodeURIComponent(q)}&limit=1` : null,
+    fetcher
+  );
+  return data?.total ?? 0;
 }
 
 /* ── AI Brief card (overlay) ─────────────────────────────────── */
@@ -147,8 +144,14 @@ export function SearchBar() {
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const isTyping = localQuery.length > 0;
-  const resultCount = isTyping ? countResults(localQuery) : 0;
+  const resultCount = useSearchCount(localQuery);
   const aiBrief = isTyping ? getAiBrief(localQuery) : null;
+
+  const { data: allPdfsData } = useSWR<{ data: PDF[] }>(
+    isActive && !isTyping ? "/api/pdfs?limit=500" : null,
+    fetcher
+  );
+  const allPdfs = allPdfsData?.data ?? [];
 
   useEffect(() => { setLocalQuery(searchQuery); }, [searchQuery]);
 
@@ -383,7 +386,7 @@ export function SearchBar() {
                     <div className="grid grid-cols-5 gap-3">
                       {COLLECTIONS.slice(0, 5).map((col, i) => {
                         const colors = MINI_COLORS[i % MINI_COLORS.length];
-                        const count = MOCK_PDFS.filter(
+                        const count = allPdfs.filter(
                           (p) =>
                             (!col.subjectFilter || p.subject === col.subjectFilter) &&
                             (!col.sourceFilter || p.source === col.sourceFilter)

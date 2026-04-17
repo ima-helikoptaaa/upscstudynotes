@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { Bookmark, Download, ArrowRight } from "lucide-react";
@@ -8,6 +8,7 @@ import { useStore } from "@/store/useStore";
 import { type PDF } from "@/lib/mock-data";
 import { cn, triggerDownload } from "@/lib/utils";
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
+import { preload } from "swr";
 
 function fmtNum(n: number) {
   if (n >= 1000) return `${(n / 1000).toFixed(1)}K`;
@@ -29,16 +30,37 @@ const SUBJECT_LABEL: Record<string, string> = {
   CSAT: "CSAT", Optionals: "OPT", Essay: "Essay",
 };
 
-const THUMB_H = 160; // px - thumbnail area height
-const IFRAME_H = 740; // px - iframe height; must be >> THUMB_H so the PDF page
-                      // renders with enough vertical space and nothing scrolls.
-                      // The container (THUMB_H, overflow:hidden) clips the rest.
+const THUMB_H = 160;
+const IFRAME_H = 740;
+
+function useLazyVisible(rootMargin = "200px") {
+  const ref = useRef<HTMLDivElement>(null);
+  const [visible, setVisible] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(
+      ([entry]) => { if (entry.isIntersecting) { setVisible(true); obs.disconnect(); } },
+      { rootMargin }
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, [rootMargin]);
+  return { ref, visible };
+}
 
 export function PDFCard({ pdf }: { pdf: PDF }) {
   const { isSaved, toggleSave, user, openAuthModal, showToast } = useStore();
   const saved = isSaved(pdf.id);
   const flat = THUMB_FLAT[pdf.subject] ?? { bg: "#F3F4F6", text: "#374151" };
   const [confirmUnsave, setConfirmUnsave] = useState(false);
+  const { ref: thumbRef, visible: thumbVisible } = useLazyVisible();
+
+  const handlePrefetch = useCallback(() => {
+    const f = (url: string) => fetch(url).then((r) => r.json());
+    preload(`/api/pdfs/${pdf.id}`, f);
+    preload(`/api/flashcards/${pdf.id}`, f);
+  }, [pdf.id]);
 
   const handleSave = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -63,46 +85,38 @@ export function PDFCard({ pdf }: { pdf: PDF }) {
       transition={{ duration: 0.18, ease: "easeOut" }}
       className="w-full"
     >
-      <Link href={`/pdf/${pdf.id}`} className="group block">
+      <Link href={`/pdf/${pdf.id}`} className="group block" onMouseEnter={handlePrefetch}>
         <div
           className="bg-white rounded-2xl overflow-hidden border-2 border-transparent ring-1 ring-[var(--color-border)] group-hover:ring-0 group-hover:border-[var(--color-primary)] flex flex-col transition-all duration-200"
         >
 
-          {/* ── Thumbnail ───────────────────────────────────────
-              Strategy: iframe is IFRAME_H px tall inside a THUMB_H px container
-              with overflow:hidden. The PDF renders at full width (fit-width) with
-              plenty of vertical space - no scroll possible. Container clips to top
-              THUMB_H px, showing the first page as a thumbnail.
-              Pastel flat.bg is the container background colour, visible while the
-              PDF loads (before the iframe paints over it).
-          ──────────────────────────────────────────────────── */}
           <div
+            ref={thumbRef}
             className="relative flex-shrink-0 overflow-hidden"
             style={{ height: THUMB_H, backgroundColor: flat.bg }}
           >
-            <iframe
-              src={`${pdf.file_url}#toolbar=0&navpanes=0&scrollbar=0&view=FitH`}
-              scrolling="no"
-              style={{
-                position: "absolute",
-                top: 0,
-                left: 0,
-                width: "calc(100% + 20px)", // push scrollbar 20px past the clipping edge
-                height: IFRAME_H,
-                border: "none",
-                pointerEvents: "none",
-                display: "block",
-              }}
-              loading="lazy"
-              tabIndex={-1}
-              aria-hidden
-              title=""
-            />
+            {thumbVisible && (
+              <iframe
+                src={`${pdf.file_url}#toolbar=0&navpanes=0&scrollbar=0&view=FitH`}
+                scrolling="no"
+                style={{
+                  position: "absolute",
+                  top: 0,
+                  left: 0,
+                  width: "calc(100% + 20px)",
+                  height: IFRAME_H,
+                  border: "none",
+                  pointerEvents: "none",
+                  display: "block",
+                }}
+                tabIndex={-1}
+                aria-hidden
+                title=""
+              />
+            )}
 
-            {/* Hover dim overlay */}
             <div className="absolute inset-0 z-[1] bg-black/0 group-hover:bg-black/10 transition-colors duration-200 pointer-events-none" />
 
-            {/* Subject pill - bottom-left, sits above PDF */}
             <div className="absolute bottom-2.5 left-3 z-10">
               <span
                 className="inline-block text-[11.5px] font-bold font-satoshi leading-none px-2.5 py-1 rounded-md"
@@ -112,18 +126,15 @@ export function PDFCard({ pdf }: { pdf: PDF }) {
               </span>
             </div>
 
-            {/* Bottom-right gradient scrim — default on mobile/tablet, hover-only on desktop */}
             <div
               className="absolute bottom-0 right-0 w-20 h-16 z-[2] pointer-events-none lg:opacity-0 lg:group-hover:opacity-100 transition-opacity duration-200"
               style={{ background: "radial-gradient(ellipse at 100% 100%, rgba(0,0,0,0.65) 0%, transparent 72%)" }}
             />
 
-            {/* Arrow - bottom-right, slides in on hover */}
             <div className="absolute bottom-3 right-3 z-10 opacity-0 translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-200">
               <ArrowRight size={16} className="text-white" />
             </div>
 
-            {/* Download + Save buttons - top-right, appear on hover */}
             <div className="absolute top-2.5 right-2.5 z-10 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
               <button
                 onClick={handleDownload}

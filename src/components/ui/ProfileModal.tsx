@@ -55,7 +55,7 @@ export function ProfileModal({ user, onClose }: ProfileModalProps) {
               className="size-[72px] rounded-full bg-[var(--color-primary)] text-white flex items-center justify-center text-[1.75rem] font-sentient shrink-0"
               style={{ boxShadow: "0 4px 18px rgba(99,102,241,0.35)" }}
             >
-              {user.name.charAt(0).toUpperCase()}
+              {(user.name || "U").charAt(0).toUpperCase()}
             </div>
             <h2 className="font-sentient text-[1.2rem] leading-snug text-[var(--color-text-primary)] text-balance mt-3 text-center">
               {user.name}

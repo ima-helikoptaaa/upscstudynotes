@@ -4,8 +4,10 @@ import { use, useState } from "react";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { motion } from "framer-motion";
+import useSWR from "swr";
 import { useStore } from "@/store/useStore";
-import { MOCK_PDFS } from "@/lib/mock-data";
+import { type PDF } from "@/lib/mock-data";
+import { fetcher } from "@/lib/fetcher";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { LoginModal } from "@/components/auth/LoginModal";
 import { Tag } from "@/components/ui/Tag";
@@ -21,31 +23,43 @@ function fmtNum(n: number) {
   return String(n);
 }
 
-const FLASHCARDS = [
-  {
-    id: 1,
-    front: "What is the Preamble of the Indian Constitution?",
-    back: "It declares India a Sovereign, Socialist, Secular, Democratic Republic ensuring Justice, Liberty, Equality, and Fraternity.",
-  },
-  {
-    id: 2,
-    front: "Name the Fundamental Rights guaranteed by the Indian Constitution.",
-    back: "Right to Equality, Right to Freedom, Right against Exploitation, Right to Freedom of Religion, Cultural & Educational Rights, Right to Constitutional Remedies.",
-  },
-  {
-    id: 3,
-    front: "What is the significance of Article 32?",
-    back: "Dr. Ambedkar called it the 'heart and soul' of the Constitution. It guarantees the right to move the Supreme Court for enforcement of Fundamental Rights.",
-  },
-];
+interface Flashcard {
+  id: string;
+  question: string;
+  answer: string;
+  difficulty: string;
+  tags: string[];
+}
 
 export default function PDFDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
-  const pdf = MOCK_PDFS.find((p) => p.id === id);
-  if (!pdf) notFound();
-
+  const { data: pdf, isLoading } = useSWR<PDF>(`/api/pdfs/${id}`, fetcher);
+  const { data: flashcardsData } = useSWR<{ data: Flashcard[] }>(`/api/flashcards/${id}`, fetcher);
+  const flashcards = flashcardsData?.data ?? [];
   const { isSaved, toggleSave, user, openAuthModal, showToast } = useStore();
-  const saved = isSaved(pdf.id);
+  const saved = pdf ? isSaved(pdf.id) : false;
+
+  if (isLoading) {
+    return (
+      <AppLayout>
+        <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-10 py-8 animate-pulse">
+          <div className="h-4 w-16 bg-[var(--color-surface-alt)] rounded mb-6" />
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-8">
+            <div className="h-[60vh] bg-[var(--color-surface-alt)] rounded-xl" />
+            <div className="space-y-4">
+              <div className="h-8 w-3/4 bg-[var(--color-surface-alt)] rounded" />
+              <div className="flex gap-2">
+                <div className="h-6 w-14 bg-[var(--color-surface-alt)] rounded-full" />
+                <div className="h-6 w-20 bg-[var(--color-surface-alt)] rounded-full" />
+              </div>
+              <div className="h-32 bg-[var(--color-surface-alt)] rounded-xl mt-4" />
+            </div>
+          </div>
+        </div>
+      </AppLayout>
+    );
+  }
+  if (!pdf) notFound();
 
   const handleDownload = () => {
     if (!user) { openAuthModal(() => { triggerDownload(pdf.file_url, pdf.title); showToast("Download started"); }); return; }
@@ -92,14 +106,16 @@ export default function PDFDetailPage({ params }: { params: Promise<{ id: string
         </p>
       </div>
 
-      <div>
-        <SectionLabel text="Flashcards" />
-        <div className="space-y-2 mt-3">
-          {FLASHCARDS.map((card, i) => (
-            <FlashCard key={card.id} index={i} front={card.front} back={card.back} />
-          ))}
+      {flashcards.length > 0 && (
+        <div>
+          <SectionLabel text={`Flashcards (${flashcards.length})`} />
+          <div className="space-y-2 mt-3">
+            {flashcards.map((card, i) => (
+              <FlashCard key={card.id} index={i} front={card.question} back={card.answer} />
+            ))}
+          </div>
         </div>
-      </div>
+      )}
     </>
   );
 
@@ -160,7 +176,7 @@ export default function PDFDetailPage({ params }: { params: Promise<{ id: string
               </h1>
               <div className="flex flex-wrap gap-1.5">
                 <Tag label={pdf.subject} variant="subject" />
-                <Tag label={pdf.source} variant="source" />
+                <Tag label={pdf.source} variant="collection" />
                 {pdf.tags.map((tag) => <Tag key={tag} label={tag} />)}
               </div>
             </div>
@@ -202,7 +218,7 @@ export default function PDFDetailPage({ params }: { params: Promise<{ id: string
             </h1>
             <div className="flex flex-wrap gap-1.5">
               <Tag label={pdf.subject} variant="subject" />
-              <Tag label={pdf.source} variant="source" />
+              <Tag label={pdf.source} variant="collection" />
               {pdf.tags.map((tag) => <Tag key={tag} label={tag} />)}
             </div>
           </div>
