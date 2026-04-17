@@ -31,6 +31,7 @@ import {
   GridIcon as LayoutGridIconData,
   BookOpen01Icon,
   EyeIcon as EyeIconData,
+  ArrowDown01Icon,
 } from "@hugeicons/core-free-icons";
 
 type IconProps = Pick<
@@ -72,3 +73,5 @@ export const ExternalLink = make(LinkSquare01Icon);
 export const Filter      = make(FilterIconData);
 export const BookOpen    = make(BookOpen01Icon);
 export const Eye         = make(EyeIconData);
+export const ChevronDownIcon = make(ArrowDown01Icon);
+export const CheckIcon   = make(Tick01Icon);
