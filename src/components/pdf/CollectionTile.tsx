@@ -28,6 +28,7 @@ interface CollectionTileProps {
 export function CollectionTile({ col, colorIndex = 0, mini = false }: CollectionTileProps) {
   const router = useRouter();
   const colors = PASTEL_PALETTE[colorIndex % PASTEL_PALETTE.length];
+  const tabH = mini ? 10 : 12;
 
   const count = MOCK_PDFS.filter(
     (p) =>
@@ -38,54 +39,89 @@ export function CollectionTile({ col, colorIndex = 0, mini = false }: Collection
   return (
     <button
       onClick={() => router.push(`/collection/${col.id}`)}
-      className="group relative w-full text-left"
-      style={{ paddingTop: mini ? 8 : 10, paddingLeft: 2, paddingRight: 2 }}
+      className="group w-full text-left"
+      /* paddingTop = tab height + gap; paddingBottom = space for stack peek */
+      style={{ paddingTop: tabH + 4, paddingBottom: 10, paddingLeft: 2, paddingRight: 2 }}
     >
-      {/* Back card 2 */}
-      <span
-        aria-hidden
-        className="absolute rounded-xl"
-        style={{
-          top: 0, left: 6, right: -6, bottom: 3,
-          backgroundColor: colors.back,
-          transform: "rotate(3.5deg)",
-          transformOrigin: "bottom center",
-        }}
-      />
-      {/* Back card 1 */}
-      <span
-        aria-hidden
-        className="absolute rounded-xl"
-        style={{
-          top: mini ? 3 : 4, left: 3, right: -3, bottom: 1,
-          backgroundColor: colors.mid,
-          transform: "rotate(1.5deg)",
-          transformOrigin: "bottom center",
-        }}
-      />
-      {/* Main card */}
-      <div
-        className="relative rounded-xl border border-black/[0.06] transition-transform duration-200 group-hover:-translate-y-1"
-        style={{
-          backgroundColor: colors.main,
-          padding: mini ? "12px 14px" : "14px 16px",
-        }}
-      >
-        <p
-          className={`font-medium text-[var(--color-text-primary)] font-satoshi leading-snug line-clamp-2 group-hover:text-[var(--color-primary)] transition-colors ${mini ? "text-[13px]" : "text-[15px]"}`}
+      {/* Stacking context so z-index works locally */}
+      <div className="relative" style={{ isolation: "isolate" }}>
+
+        {/* Back paper — peeks most from below, no rotation */}
+        <span
+          aria-hidden
+          className="absolute rounded-xl"
+          style={{
+            top: tabH + 2,
+            left: 5,
+            right: 5,
+            bottom: -9,
+            backgroundColor: colors.back,
+            border: "1px solid rgba(0,0,0,0.04)",
+          }}
+        />
+
+        {/* Mid paper — peeks a bit less */}
+        <span
+          aria-hidden
+          className="absolute rounded-xl"
+          style={{
+            top: tabH,
+            left: 3,
+            right: 3,
+            bottom: -5,
+            backgroundColor: colors.mid,
+            border: "1px solid rgba(0,0,0,0.05)",
+          }}
+        />
+
+        {/* Folder — z-index 1 keeps it above the paper stack */}
+        <div
+          className="relative transition-transform duration-200 group-hover:-translate-y-1"
+          style={{ zIndex: 1 }}
         >
-          {col.label}
-        </p>
-        <div className="flex items-center justify-between mt-1">
-          <p className={`text-[var(--color-text-muted)] font-satoshi ${mini ? "text-[11px]" : "text-xs"}`}>
-            {count} PDFs
-          </p>
-          {!mini && (
-            <div className="opacity-0 group-hover:opacity-100 transition-all text-[var(--color-text-muted)]">
-              <ArrowRight size={13} />
+          {/* Tab ear */}
+          <div
+            aria-hidden
+            style={{
+              position: "absolute",
+              top: -tabH,
+              left: 0,
+              width: "42%",
+              height: tabH + 2,
+              backgroundColor: colors.main,
+              borderRadius: "5px 5px 0 0",
+              border: "1px solid rgba(0,0,0,0.06)",
+              borderBottom: "none",
+            }}
+          />
+
+          {/* Folder body */}
+          <div
+            className="border border-black/[0.06]"
+            style={{
+              backgroundColor: colors.main,
+              padding: mini ? "12px 14px" : "14px 16px",
+              borderRadius: "0 8px 8px 8px",
+            }}
+          >
+            <p
+              className={`font-medium text-[var(--color-text-primary)] font-satoshi leading-snug line-clamp-2 group-hover:text-[var(--color-primary)] transition-colors ${mini ? "text-[13px]" : "text-[15px]"}`}
+            >
+              {col.label}
+            </p>
+            <div className="flex items-center justify-between mt-1">
+              <p className={`text-[var(--color-text-muted)] font-satoshi ${mini ? "text-[11px]" : "text-xs"}`}>
+                {count} PDFs
+              </p>
+              {!mini && (
+                <div className="opacity-0 group-hover:opacity-100 transition-all text-[var(--color-text-muted)]">
+                  <ArrowRight size={13} />
+                </div>
+              )}
             </div>
-          )}
+          </div>
         </div>
+
       </div>
     </button>
   );

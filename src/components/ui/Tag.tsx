@@ -12,8 +12,9 @@ const subjectColors: Record<string, string> = {
   GS2:      "bg-emerald-50 text-emerald-700 border border-emerald-100",
   GS3:      "bg-orange-50 text-orange-700 border border-orange-100",
   GS4:      "bg-purple-50 text-purple-700 border border-purple-100",
-  Optional: "bg-pink-50   text-pink-700   border border-pink-100",
-  CA:       "bg-amber-50  text-amber-700  border border-amber-100",
+  CSAT:     "bg-amber-50  text-amber-700  border border-amber-100",
+  Optionals:"bg-pink-50   text-pink-700   border border-pink-100",
+  Essay:    "bg-teal-50   text-teal-700   border border-teal-100",
 };
 
 const sourceColors: Record<string, string> = {

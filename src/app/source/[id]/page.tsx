@@ -4,7 +4,7 @@ import { use } from "react";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { ArrowLeft, Bookmark, BookmarkCheck } from "lucide-react";
+import { ArrowLeft, Bookmark } from "lucide-react";
 import { MOCK_PDFS, type Source } from "@/lib/mock-data";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { PDFCard } from "@/components/pdf/PDFCard";
@@ -58,13 +58,12 @@ export default function SourcePage({ params }: { params: Promise<{ id: string }>
           className="inline-flex items-center gap-1.5 text-sm text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] mb-6 transition-colors font-satoshi"
         >
           <ArrowLeft size={14} />
-          Back to library
+          Back to Home
         </Link>
 
         <div className="flex items-start justify-between mb-8 gap-4">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-widest text-[var(--color-text-muted)] font-satoshi mb-1">Source</p>
-            <h1 className="font-sentient text-h2 text-[var(--color-text-primary)]">{label}</h1>
+              <h1 className="font-sentient text-h2 text-[var(--color-text-primary)]">{label}</h1>
             <p className="text-sm text-[var(--color-text-secondary)] font-satoshi mt-1.5">
               {pdfs.length} {pdfs.length === 1 ? "document" : "documents"}
             </p>
@@ -78,9 +77,7 @@ export default function SourcePage({ params }: { params: Promise<{ id: string }>
                 : "bg-white border-[var(--color-border)] text-[var(--color-text-secondary)] hover:border-[var(--color-primary)] hover:text-[var(--color-primary)]"
             )}
           >
-            {saved
-              ? <BookmarkCheck size={14} fill="currentColor" strokeWidth={1.5} />
-              : <Bookmark size={14} />}
+            <Bookmark size={14} fill={saved ? "currentColor" : "none"} />
             {saved ? "Saved" : "Save source"}
           </button>
         </div>

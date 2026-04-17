@@ -5,16 +5,18 @@ import Link from "next/link";
 import { Bookmark, User, LogOut, ChevronDown } from "lucide-react";
 import { useStore } from "@/store/useStore";
 import { ProfileModal } from "@/components/ui/ProfileModal";
+import { ConfirmModal } from "@/components/ui/ConfirmModal";
 import { cn } from "@/lib/utils";
 
 export function Navbar() {
   const { user, openAuthModal, logout } = useStore();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [confirmLogout, setConfirmLogout] = useState(false);
 
   return (
     <>
-      <nav className="sticky top-0 z-30 flex items-center justify-between px-5 h-14 bg-white border-b border-[var(--color-border)]">
+      <nav className="sticky top-0 z-30 flex items-center justify-between px-7 h-16 bg-white border-b border-[var(--color-border)]">
         <Link href="/" className="flex flex-col leading-none select-none">
           <span className="font-sentient text-[1.1rem] text-[var(--color-text-primary)]">
             UPSC<span className="text-[var(--color-primary)]">Notes</span>
@@ -25,7 +27,7 @@ export function Navbar() {
         </Link>
 
         <div className="flex items-center gap-2">
-          {/* Saved — icon + label on desktop */}
+          {/* Saved - icon + label on desktop */}
           <Link
             href="/saved"
             className="flex items-center gap-2 h-10 px-3.5 rounded-full border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-muted)] hover:border-[var(--color-border-strong)] transition-all"
@@ -72,7 +74,7 @@ export function Navbar() {
                     </button>
                     <div className="h-px bg-[var(--color-border)] mx-3 my-0.5" />
                     <button
-                      onClick={() => { setDropdownOpen(false); logout(); }}
+                      onClick={() => { setDropdownOpen(false); setConfirmLogout(true); }}
                       className="w-full text-left px-4 py-2.5 text-sm font-satoshi text-red-500 hover:bg-red-50 transition-colors flex items-center gap-2.5"
                     >
                       <LogOut size={14} />
@@ -97,6 +99,15 @@ export function Navbar() {
       {profileOpen && user && (
         <ProfileModal user={user} onClose={() => setProfileOpen(false)} />
       )}
+
+      <ConfirmModal
+        open={confirmLogout}
+        title="Log out?"
+        body="You'll be signed out and won't be able to save or download unless you sign back in."
+        confirmLabel="Log out"
+        onConfirm={() => { setConfirmLogout(false); logout(); }}
+        onCancel={() => setConfirmLogout(false)}
+      />
     </>
   );
 }

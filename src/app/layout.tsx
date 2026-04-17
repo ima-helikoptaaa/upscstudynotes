@@ -23,7 +23,7 @@ const sentient = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "UPSCStudyNotes — Study smarter",
+  title: "UPSCStudyNotes - Study smarter",
   description:
     "Interactive PDF learning platform for UPSC aspirants. Explain, summarize, generate Q&A and flashcards from any study material.",
 };

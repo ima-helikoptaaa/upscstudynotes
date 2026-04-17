@@ -15,11 +15,11 @@ import { useRouter } from "next/navigation";
 const AI_BRIEFS: Array<{ keywords: string[]; brief: string }> = [
   { keywords: ["polity", "constitution", "parliament", "fundamental rights"], brief: "Indian Polity covers the constitutional framework, fundamental rights, DPSP, federal structure, and parliamentary system. Key topics include Articles 12–35, 51A, and constitutional bodies like the EC, CAG, and UPSC." },
   { keywords: ["economy", "gdp", "rbi", "inflation", "fiscal", "monetary"], brief: "Indian Economy spans macroeconomic policy, fiscal & monetary frameworks, post-independence planning, trade, agriculture, infrastructure, and current challenges including inflation and the digital economy." },
-  { keywords: ["history", "medieval", "ancient", "mughal", "harappan", "colonial", "freedom", "independence"], brief: "UPSC History includes ancient civilizations (Harappan, Vedic), medieval kingdoms (Delhi Sultanate, Mughals), and modern history — colonial era, freedom movement 1857–1947, and constitution-making." },
+  { keywords: ["history", "medieval", "ancient", "mughal", "harappan", "colonial", "freedom", "independence"], brief: "UPSC History includes ancient civilizations (Harappan, Vedic), medieval kingdoms (Delhi Sultanate, Mughals), and modern history - colonial era, freedom movement 1857–1947, and constitution-making." },
   { keywords: ["geography", "monsoon", "river", "climate", "soil", "physical", "drainage"], brief: "Geography covers physical features, climate systems, river networks, mineral distribution, and human geography including migration, urbanization, economic activities, and disaster management." },
   { keywords: ["environment", "ecology", "biodiversity", "climate change", "pollution", "paris"], brief: "Environment & Ecology includes biodiversity hotspots, international conventions (CITES, Ramsar, Paris Agreement), climate change adaptation, pollution control, and India's green policies." },
   { keywords: ["ethics", "integrity", "aptitude", "case study", "civil service", "probity"], brief: "GS4 Ethics covers philosophical foundations, emotional intelligence, civil service values, probity in governance, and case studies on corruption, whistleblowing, and institutional integrity." },
-  { keywords: ["current affairs", "monthly", "ca", "news"], brief: "Current Affairs for UPSC covers national & international events, economic updates, scientific breakthroughs, sports, awards, and government schemes — spanning the 12–18 months before the exam." },
+  { keywords: ["current affairs", "monthly", "ca", "news"], brief: "Current Affairs for UPSC covers national & international events, economic updates, scientific breakthroughs, sports, awards, and government schemes - spanning the 12–18 months before the exam." },
   { keywords: ["science", "technology", "space", "isro", "ai", "artificial intelligence"], brief: "S&T for UPSC includes ISRO missions, biotech, AI policy, nanotechnology, cybersecurity, and defence R&D. Focus on Chandrayaan, Aditya-L1, and India's digital public infrastructure." },
 ];
 
@@ -45,82 +45,88 @@ function AiBriefCard({ query }: { query: string }) {
 
   return (
     <div
-      className="rounded-xl mb-8"
-      style={{ background: "#EEF2FF", border: "1px solid rgba(55,48,163,0.1)" }}
+      className="rounded-2xl mb-8 overflow-hidden"
+      style={{ background: "#EEF2FF", border: "1px solid rgba(55,48,163,0.12)" }}
     >
-      <div className="px-4 py-3">
-        {/* Label + generate row */}
-        <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center gap-1.5">
-            <Sparkles size={11} style={{ color: "rgba(55,48,163,0.55)" }} />
-            <span
-              className="text-[10px] font-satoshi font-bold uppercase tracking-[0.12em]"
-              style={{ color: "rgba(55,48,163,0.5)" }}
-            >
-              AI Brief
-            </span>
-          </div>
-
-          {state === "idle" && (
-            <button
-              onClick={handleGenerate}
-              className="flex items-center gap-1.5 text-[11px] font-satoshi font-semibold px-3 py-1 rounded-full text-white transition-all hover:opacity-90 active:scale-95"
-              style={{ background: "#3730A3" }}
-            >
-              <Sparkles size={10} />
-              Generate
-            </button>
-          )}
+      {/* Header — always visible */}
+      <div className="flex items-center justify-between px-5 pt-4 pb-3">
+        <div className="flex items-center gap-2">
+          <Sparkles size={14} style={{ color: "rgba(55,48,163,0.6)" }} />
+          <span
+            className="text-[11px] font-satoshi font-bold uppercase tracking-[0.14em]"
+            style={{ color: "rgba(55,48,163,0.55)" }}
+          >
+            AI Brief
+          </span>
         </div>
-
-        {/* Idle */}
         {state === "idle" && (
-          <div className="flex items-baseline gap-2">
-            <p className="font-sentient text-[14px] leading-snug" style={{ color: "#1e1b4b" }}>
-              &ldquo;{query}&rdquo;
+          <button
+            onClick={handleGenerate}
+            className="flex items-center gap-1.5 text-[12px] font-satoshi font-semibold px-4 py-1.5 rounded-full text-white transition-all hover:opacity-90 active:scale-95"
+            style={{ background: "#3730A3" }}
+          >
+            <Sparkles size={11} />
+            Generate
+          </button>
+        )}
+      </div>
+
+      {/* Body — transitions between states */}
+      <AnimatePresence mode="wait" initial={false}>
+
+        {state === "idle" && (
+          <motion.div
+            key="idle"
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="px-5 pb-4"
+          >
+            <p className="text-[13.5px] font-satoshi" style={{ color: "rgba(55,48,163,0.45)" }}>
+              Get a curated smart overview
             </p>
-            <span className="text-[11px] font-satoshi" style={{ color: "rgba(55,48,163,0.38)" }}>
-              · get a curated overview
-            </span>
-          </div>
+          </motion.div>
         )}
 
-        {/* Loading */}
         {state === "loading" && (
-          <div className="flex items-center gap-2">
+          <motion.div
+            key="loading"
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="px-5 pb-4 flex items-center gap-2.5"
+          >
             <span className="text-[12px] font-satoshi" style={{ color: "rgba(55,48,163,0.55)" }}>
-              Generating brief
+              Generating
             </span>
             <div className="flex gap-1 items-center">
               {[0, 1, 2].map((i) => (
                 <motion.span
                   key={i}
-                  className="block w-1 h-1 rounded-full"
+                  className="block w-1.5 h-1.5 rounded-full"
                   style={{ background: "rgba(55,48,163,0.4)" }}
-                  animate={{ opacity: [0.2, 1, 0.2] }}
-                  transition={{ duration: 1.2, delay: i * 0.2, repeat: Infinity, ease: "easeInOut" }}
+                  animate={{ opacity: [0.2, 1, 0.2], scale: [0.8, 1, 0.8] }}
+                  transition={{ duration: 1.1, delay: i * 0.18, repeat: Infinity, ease: "easeInOut" }}
                 />
               ))}
             </div>
-          </div>
+          </motion.div>
         )}
 
-        {/* Done */}
         {state === "done" && brief && (
           <motion.div
-            initial={{ opacity: 0, y: 3 }}
+            key="done"
+            initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3, ease: "easeOut" }}
+            transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+            className="border-t px-5 py-4"
+            style={{ borderColor: "rgba(55,48,163,0.1)" }}
           >
-            <p className="text-[10.5px] font-satoshi font-semibold mb-1.5" style={{ color: "rgba(55,48,163,0.45)" }}>
-              {query}
-            </p>
-            <p className="text-[13px] font-satoshi leading-[1.7] text-[var(--color-text-secondary)]">
+            <p className="text-[13.5px] font-satoshi leading-[1.75] text-[var(--color-text-secondary)]">
               {brief}
             </p>
           </motion.div>
         )}
-      </div>
+
+      </AnimatePresence>
     </div>
   );
 }
@@ -185,8 +191,8 @@ function SearchResults() {
           href="/"
           className="inline-flex items-center gap-2 text-sm font-satoshi text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-colors mb-6"
         >
-          <ArrowLeft size={15} />
-          Home
+          <ArrowLeft size={16} />
+          Back
         </Link>
 
         {/* Search bar */}
@@ -194,7 +200,7 @@ function SearchResults() {
           <PageSearchBar defaultValue={q} />
         </div>
 
-        {/* AI Brief card — same width as search bar */}
+        {/* AI Brief card - same width as search bar */}
         {q && (
           <div className="max-w-[600px]">
             <AiBriefCard key={q} query={q} />

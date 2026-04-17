@@ -1,16 +1,28 @@
 "use client";
 
-import { use } from "react";
+import { use, useState } from "react";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { ArrowLeft, Bookmark, BookmarkCheck } from "lucide-react";
-import { MOCK_PDFS, ALL_COLLECTIONS } from "@/lib/mock-data";
+import { ArrowLeft, Bookmark } from "lucide-react";
+import { MOCK_PDFS, ALL_COLLECTIONS, type Source } from "@/lib/mock-data";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { PDFCard } from "@/components/pdf/PDFCard";
 import { LoginModal } from "@/components/auth/LoginModal";
+import { ConfirmModal } from "@/components/ui/ConfirmModal";
 import { useStore } from "@/store/useStore";
 import { cn } from "@/lib/utils";
+
+const SOURCE_LABEL: Record<string, string> = {
+  VisionIAS:   "Vision IAS",
+  ForumIAS:    "Forum IAS",
+  DrishtiIAS:  "Drishti IAS",
+  ShankarIAS:  "Shankar IAS",
+  InsightsIAS: "Insights IAS",
+  StudyIQ:     "Study IQ",
+  NCERT:       "NCERT",
+  PYQ:         "Previous Year Questions",
+};
 
 function ListEnd() {
   return (
@@ -24,21 +36,32 @@ function ListEnd() {
 
 export default function CollectionPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
+
   const col = ALL_COLLECTIONS.find((c) => c.id === id);
-  if (!col) notFound();
+  const isSource = !col && id in SOURCE_LABEL;
+  if (!col && !isSource) notFound();
 
   const { isCollectionSaved, toggleSaveCollection, user, openAuthModal } = useStore();
-  const saved = isCollectionSaved(col.id);
+  const [confirmUnsave, setConfirmUnsave] = useState(false);
 
-  const pdfs = MOCK_PDFS.filter(
-    (p) =>
-      (!col.subjectFilter || p.subject === col.subjectFilter) &&
-      (!col.sourceFilter  || p.source  === col.sourceFilter)
-  );
+  const label = col ? col.label : SOURCE_LABEL[id];
+  const saved = isCollectionSaved(id);
+
+  const pdfs = col
+    ? MOCK_PDFS.filter(
+        (p) =>
+          (!col.subjectFilter || p.subject === col.subjectFilter) &&
+          (!col.sourceFilter  || p.source  === col.sourceFilter)
+      )
+    : MOCK_PDFS.filter((p) => p.source === (id as Source));
 
   const handleSave = () => {
-    if (!user) { openAuthModal(() => toggleSaveCollection(col.id)); return; }
-    toggleSaveCollection(col.id);
+    if (!user) {
+      openAuthModal(() => toggleSaveCollection(id));
+      return;
+    }
+    if (saved) { setConfirmUnsave(true); return; }
+    toggleSaveCollection(id);
   };
 
   return (
@@ -46,16 +69,15 @@ export default function CollectionPage({ params }: { params: Promise<{ id: strin
       <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Link
           href="/"
-          className="inline-flex items-center gap-1.5 text-sm text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] mb-6 transition-colors font-satoshi"
+          className="inline-flex items-center gap-2 text-sm text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] mb-6 transition-colors font-satoshi"
         >
-          <ArrowLeft size={14} />
-          Back to library
+          <ArrowLeft size={16} />
+          Back
         </Link>
 
         <div className="flex items-start justify-between mb-8 gap-4">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-widest text-[var(--color-text-muted)] font-satoshi mb-1">Collection</p>
-            <h1 className="font-sentient text-h2 text-[var(--color-text-primary)]">{col.label}</h1>
+            <h1 className="font-sentient text-h2 text-[var(--color-text-primary)]">{label}</h1>
             <p className="text-sm text-[var(--color-text-secondary)] font-satoshi mt-1.5">
               {pdfs.length} {pdfs.length === 1 ? "document" : "documents"}
             </p>
@@ -69,9 +91,7 @@ export default function CollectionPage({ params }: { params: Promise<{ id: strin
                 : "bg-white border-[var(--color-border)] text-[var(--color-text-secondary)] hover:border-[var(--color-primary)] hover:text-[var(--color-primary)]"
             )}
           >
-            {saved
-              ? <BookmarkCheck size={14} fill="currentColor" strokeWidth={1.5} />
-              : <Bookmark size={14} />}
+            <Bookmark size={14} fill={saved ? "currentColor" : "none"} />
             {saved ? "Saved" : "Save collection"}
           </button>
         </div>
@@ -96,6 +116,16 @@ export default function CollectionPage({ params }: { params: Promise<{ id: strin
         <ListEnd />
       </div>
       <LoginModal />
+      <ConfirmModal
+        open={confirmUnsave}
+        title="Remove collection?"
+        body="You can always save it again."
+        confirmLabel="Remove"
+        cancelLabel="Keep"
+        variant="default"
+        onConfirm={() => { setConfirmUnsave(false); toggleSaveCollection(id); }}
+        onCancel={() => setConfirmUnsave(false)}
+      />
     </AppLayout>
   );
 }

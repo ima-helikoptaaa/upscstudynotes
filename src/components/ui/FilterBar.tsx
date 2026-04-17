@@ -13,9 +13,8 @@ const COACHING_LABELS: Record<string, string> = {
 };
 const FORMAT_OPTIONS = [
   { value: "notes", label: "Notes" },
-  { value: "ncert", label: "NCERT" },
-  { value: "pyq", label: "PYQ" },
-  { value: "coaching", label: "Coaching" },
+  { value: "ncert", label: "Books" },
+  { value: "pyq", label: "PYQs" },
 ];
 
 export function FilterBar() {

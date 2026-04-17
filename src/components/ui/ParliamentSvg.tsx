@@ -15,7 +15,7 @@ export function ParliamentSvg({ className }: { className?: string }) {
       {/* Colonnade base plinth */}
       <rect x="130" y="285" width="940" height="80" />
 
-      {/* Columns — 38 columns across colonnade */}
+      {/* Columns - 38 columns across colonnade */}
       {Array.from({ length: 38 }, (_, i) => (
         <rect
           key={i}

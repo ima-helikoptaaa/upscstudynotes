@@ -42,11 +42,11 @@ const MINI_COLORS = [
 const AI_BRIEFS: Array<{ keywords: string[]; brief: string }> = [
   { keywords: ["polity", "constitution", "parliament", "fundamental rights"], brief: "Indian Polity covers the constitutional framework, fundamental rights, DPSP, federal structure, and parliamentary system. Key topics include Articles 12–35, 51A, and constitutional bodies like the EC, CAG, and UPSC." },
   { keywords: ["economy", "gdp", "rbi", "inflation", "fiscal", "monetary"], brief: "Indian Economy spans macroeconomic policy, fiscal & monetary frameworks, post-independence planning, trade, agriculture, infrastructure, and current challenges including inflation and the digital economy." },
-  { keywords: ["history", "medieval", "ancient", "mughal", "harappan", "colonial", "freedom", "independence"], brief: "UPSC History includes ancient civilizations (Harappan, Vedic), medieval kingdoms (Delhi Sultanate, Mughals), and modern history — colonial era, freedom movement 1857–1947, and constitution-making." },
+  { keywords: ["history", "medieval", "ancient", "mughal", "harappan", "colonial", "freedom", "independence"], brief: "UPSC History includes ancient civilizations (Harappan, Vedic), medieval kingdoms (Delhi Sultanate, Mughals), and modern history - colonial era, freedom movement 1857–1947, and constitution-making." },
   { keywords: ["geography", "monsoon", "river", "climate", "soil", "physical", "drainage"], brief: "Geography covers physical features, climate systems, river networks, mineral distribution, and human geography including migration, urbanization, economic activities, and disaster management." },
   { keywords: ["environment", "ecology", "biodiversity", "climate change", "pollution", "paris"], brief: "Environment & Ecology includes biodiversity hotspots, international conventions (CITES, Ramsar, Paris Agreement), climate change adaptation, pollution control, and India's green policies." },
   { keywords: ["ethics", "integrity", "aptitude", "case study", "civil service", "probity"], brief: "GS4 Ethics covers philosophical foundations, emotional intelligence, civil service values, probity in governance, and case studies on corruption, whistleblowing, and institutional integrity." },
-  { keywords: ["current affairs", "monthly", "ca", "news"], brief: "Current Affairs for UPSC covers national & international events, economic updates, scientific breakthroughs, sports, awards, and government schemes — spanning the 12–18 months before the exam." },
+  { keywords: ["current affairs", "monthly", "ca", "news"], brief: "Current Affairs for UPSC covers national & international events, economic updates, scientific breakthroughs, sports, awards, and government schemes - spanning the 12–18 months before the exam." },
   { keywords: ["science", "technology", "space", "isro", "ai", "artificial intelligence"], brief: "S&T for UPSC includes ISRO missions, biotech, AI policy, nanotechnology, cybersecurity, and defence R&D. Focus on Chandrayaan, Aditya-L1, and India's digital public infrastructure." },
 ];
 
@@ -219,71 +219,92 @@ export function SearchBar() {
 
       {/* Search panel */}
       <div className="relative z-[40]">
-        {isActive ? (
-          /* Active — BorderBeam + dark fill */
-          <BorderBeam
-            size="md"
-            colorVariant="ocean"
-            duration={3}
-            strength={isTyping ? 0.11 : 0.6}
-            borderRadius="9999px"
-            bgColor="transparent"
-          >
-            <div
-              className="flex items-center gap-3 px-5 py-3.5 rounded-full backdrop-blur-xl"
-              style={{ background: "rgba(0,0,0,0.25)" }}
-            >
-              <Search size={18} className="shrink-0 text-white/70" />
-              <input
-                ref={inputRef}
-                type="text"
-                placeholder="Search PDFs, topics, authors…"
-                value={localQuery}
-                onChange={(e) => setLocalQuery(e.target.value)}
-                onFocus={activate}
-                onKeyDown={handleKeyDown}
-                className="flex-1 bg-transparent text-base font-satoshi focus:outline-none min-w-0 text-white placeholder:text-white/35"
-              />
-              <div className="shrink-0">
-                {isTyping ? (
-                  <button
-                    type="button"
-                    onClick={(e) => { e.stopPropagation(); clearQuery(); }}
-                    className="w-7 h-7 rounded-full bg-white/15 flex items-center justify-center text-white/60 hover:text-white hover:bg-white/25 transition-colors"
-                    aria-label="Clear"
+        {/* Fixed-height container prevents layout jerk during crossfade */}
+        <div className="relative h-[52px]">
+          <AnimatePresence initial={false}>
+            {isActive ? (
+              <motion.div
+                key="active"
+                className="absolute inset-0"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2, ease: "easeInOut" }}
+              >
+                <BorderBeam
+                  size="md"
+                  colorVariant="ocean"
+                  duration={3}
+                  strength={isTyping ? 0.11 : 0.6}
+                  borderRadius="9999px"
+                  bgColor="transparent"
+                >
+                  <div
+                    className="flex items-center gap-3 px-5 py-3.5 rounded-full backdrop-blur-xl h-full"
+                    style={{ background: "rgba(0,0,0,0.25)" }}
                   >
-                    <X size={14} />
-                  </button>
-                ) : (
-                  <div className="w-7 h-7 rounded-full bg-white/10 flex items-center justify-center text-white/40">
+                    <Search size={18} className="shrink-0 text-white/70" />
+                    <input
+                      ref={inputRef}
+                      type="text"
+                      placeholder="Search PDFs, topics, authors…"
+                      value={localQuery}
+                      onChange={(e) => setLocalQuery(e.target.value)}
+                      onFocus={activate}
+                      onKeyDown={handleKeyDown}
+                      className="flex-1 bg-transparent text-base font-satoshi focus:outline-none min-w-0 text-white placeholder:text-white/35"
+                    />
+                    <div className="shrink-0">
+                      {isTyping ? (
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); clearQuery(); }}
+                          className="w-7 h-7 rounded-full bg-white/15 flex items-center justify-center text-white/60 hover:text-white hover:bg-white/25 transition-colors"
+                          aria-label="Clear"
+                        >
+                          <X size={14} />
+                        </button>
+                      ) : (
+                        <div className="w-7 h-7 rounded-full bg-white/10 flex items-center justify-center text-white/40">
+                          <span className="text-sm leading-none font-satoshi font-medium">/</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </BorderBeam>
+              </motion.div>
+            ) : (
+              <motion.div
+                key="idle"
+                className="absolute inset-0"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2, ease: "easeInOut" }}
+              >
+                <div
+                  className="flex items-center gap-3 px-5 py-3.5 rounded-full bg-white border border-[var(--color-border)] cursor-text hover:border-[var(--color-border-strong)] transition-colors h-full"
+                  onClick={activate}
+                >
+                  <Search size={18} className="shrink-0 text-[var(--color-text-muted)]" />
+                  <input
+                    ref={inputRef}
+                    type="text"
+                    placeholder="Search PDFs, topics, authors…"
+                    value={localQuery}
+                    onChange={(e) => setLocalQuery(e.target.value)}
+                    onFocus={activate}
+                    onKeyDown={handleKeyDown}
+                    className="flex-1 bg-transparent text-base font-satoshi focus:outline-none min-w-0 text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)]"
+                  />
+                  <div className="w-7 h-7 rounded-full bg-[var(--color-surface-muted)] flex items-center justify-center text-[var(--color-text-muted)]">
                     <span className="text-sm leading-none font-satoshi font-medium">/</span>
                   </div>
-                )}
-              </div>
-            </div>
-          </BorderBeam>
-        ) : (
-          /* Idle — plain white bar, no BorderBeam */
-          <div
-            className="flex items-center gap-3 px-5 py-3.5 rounded-full bg-white border border-[var(--color-border)] cursor-text hover:border-[var(--color-border-strong)] transition-colors"
-            onClick={activate}
-          >
-            <Search size={18} className="shrink-0 text-[var(--color-text-muted)]" />
-            <input
-              ref={inputRef}
-              type="text"
-              placeholder="Search PDFs, topics, authors…"
-              value={localQuery}
-              onChange={(e) => setLocalQuery(e.target.value)}
-              onFocus={activate}
-              onKeyDown={handleKeyDown}
-              className="flex-1 bg-transparent text-base font-satoshi focus:outline-none min-w-0 text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)]"
-            />
-            <div className="w-7 h-7 rounded-full bg-[var(--color-surface-muted)] flex items-center justify-center text-[var(--color-text-muted)]">
-              <span className="text-sm leading-none font-satoshi font-medium">/</span>
-            </div>
-          </div>
-        )}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
 
         {/* Idle suggestion chips */}
         <AnimatePresence>
@@ -299,10 +320,23 @@ export function SearchBar() {
                 <button
                   key={s}
                   onClick={() => { setLocalQuery(s); activate(); }}
-                  className="flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-satoshi bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:border-[var(--color-border-strong)] transition-all"
+                  className="flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-satoshi transition-all"
+                  style={{
+                    background: "#FEFAF3",
+                    border: "1px solid rgba(200,155,70,0.28)",
+                    color: "rgba(120,80,20,0.7)",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.borderColor = "rgba(200,155,70,0.55)";
+                    e.currentTarget.style.color = "rgba(120,80,20,1)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.borderColor = "rgba(200,155,70,0.28)";
+                    e.currentTarget.style.color = "rgba(120,80,20,0.7)";
+                  }}
                 >
                   {s}
-                  <ArrowUpRight size={11} className="opacity-50" />
+                  <ArrowUpRight size={16} className="opacity-50" />
                 </button>
               ))}
             </motion.div>
@@ -313,7 +347,7 @@ export function SearchBar() {
         <AnimatePresence>
           {isActive && (
             <motion.div
-              className="mt-3 space-y-3"
+              className="mt-6 space-y-3"
               initial={{ opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0 }}
@@ -336,7 +370,7 @@ export function SearchBar() {
                         className="flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-satoshi bg-white/10 border border-white/20 text-white/80 hover:bg-white/20 hover:text-white transition-all"
                       >
                         {s}
-                        <ArrowUpRight size={11} className="opacity-60" />
+                        <ArrowUpRight size={16} className="opacity-60" />
                       </motion.button>
                     ))}
                   </motion.div>
@@ -386,43 +420,60 @@ export function SearchBar() {
                 </>
               )}
 
-              {/* Has query: AI brief (triggered) + result count / no-results */}
+              {/* Has query: result count / no-results */}
               {isTyping && (
                 <>
-                  {/* Result count or no-results */}
-                  <div className="rounded-2xl overflow-hidden" style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.1)" }}>
-                    {resultCount > 0 ? (
-                      <button
-                        onClick={() => {
-                          router.push(`/search?q=${encodeURIComponent(localQuery.trim())}`);
-                          close();
-                        }}
-                        className="w-full flex items-center justify-between px-5 py-4 hover:bg-white/5 transition-colors group"
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: "rgba(255,255,255,0.1)" }}>
-                            <Search size={14} className="text-white/60" />
-                          </div>
-                          <div className="text-left">
-                            <p className="text-sm font-medium font-satoshi text-white">
-                              {resultCount} result{resultCount !== 1 ? "s" : ""} for &ldquo;{localQuery}&rdquo;
-                            </p>
-                            <p className="text-[11px] text-white/40 font-satoshi mt-0.5">Press Enter or click to see all</p>
-                          </div>
+                  {resultCount > 0 ? (
+                    <button
+                      onClick={() => {
+                        router.push(`/search?q=${encodeURIComponent(localQuery.trim())}`);
+                        close();
+                      }}
+                      className="w-full group relative overflow-hidden rounded-2xl text-left transition-all"
+                      style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.11)" }}
+                    >
+                      {/* Hover glow */}
+                      <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none rounded-2xl"
+                        style={{ background: "rgba(99,102,241,0.09)" }} />
+
+                      <div className="relative flex items-center gap-4 px-5 py-4">
+                        {/* Count badge */}
+                        <div
+                          className="shrink-0 w-11 h-11 rounded-xl flex items-center justify-center"
+                          style={{ background: "rgba(99,102,241,0.22)", border: "1px solid rgba(99,102,241,0.35)" }}
+                        >
+                          <span className="text-[15px] font-bold font-satoshi text-white tabular-nums leading-none">
+                            {resultCount > 99 ? "99+" : resultCount}
+                          </span>
                         </div>
-                        <ArrowUpRight size={15} className="text-white/30 group-hover:text-white/60 transition-colors" />
-                      </button>
-                    ) : (
-                      <div className="px-5 py-6 text-center">
-                        <p className="text-sm font-medium font-satoshi text-white/60 mb-1">
-                          No results for &ldquo;{localQuery}&rdquo;
-                        </p>
-                        <p className="text-[11px] text-white/30 font-satoshi">
-                          Try a different term or browse collections
-                        </p>
+
+                        {/* Text */}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[13.5px] font-semibold font-satoshi text-white leading-snug truncate">
+                            Results for &ldquo;{localQuery}&rdquo;
+                          </p>
+                          <p className="text-[11px] text-white/40 font-satoshi mt-0.5">
+                            Press Enter to see all {resultCount} PDF{resultCount !== 1 ? "s" : ""}
+                          </p>
+                        </div>
+
+                        {/* Arrow */}
+                        <ArrowUpRight size={16} className="shrink-0 text-white/25 group-hover:text-white/65 transition-colors" />
                       </div>
-                    )}
-                  </div>
+                    </button>
+                  ) : (
+                    <div
+                      className="rounded-2xl px-5 py-5 text-center"
+                      style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)" }}
+                    >
+                      <p className="text-[13px] font-semibold font-satoshi text-white/55 mb-1">
+                        No results for &ldquo;{localQuery}&rdquo;
+                      </p>
+                      <p className="text-[11px] text-white/30 font-satoshi">
+                        Try a different term or browse collections
+                      </p>
+                    </div>
+                  )}
                 </>
               )}
             </motion.div>
