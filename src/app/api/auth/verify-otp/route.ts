@@ -31,7 +31,8 @@ export async function POST(request: NextRequest) {
     data: { isVerified: true, verifiedAt: new Date() },
   });
 
-  const result = await prisma.$transaction(async (tx: typeof prisma) => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const result = await prisma.$transaction(async (tx: any) => {
     let user = await tx.user.findFirst({
       where: { countryCode, phone, isDeleted: false },
     });
